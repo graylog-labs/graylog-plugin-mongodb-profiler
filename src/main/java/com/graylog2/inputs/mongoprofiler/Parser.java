@@ -6,14 +6,19 @@
  */
 package com.graylog2.inputs.mongoprofiler;
 
+import com.codahale.metrics.Timer;
 import com.google.common.collect.Maps;
 import com.mongodb.DBObject;
+import com.codahale.metrics.MetricRegistry;
 import org.graylog2.plugin.Message;
+import org.graylog2.plugin.inputs.MessageInput;
 import org.joda.time.DateTime;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.Map;
+
+import static com.codahale.metrics.MetricRegistry.name;
 
 /**
  * @author Lennart Koopmann <lennart@torch.sh>
@@ -22,11 +27,19 @@ public class Parser {
 
     private static final Logger LOG = LoggerFactory.getLogger(Parser.class);
 
+    private final Timer timer;
+
+    public Parser(MetricRegistry metrics, MessageInput sourceInput) {
+        this.timer = metrics.timer(name(sourceInput.getUniqueReadableId(), "parseTime"));
+    }
+
     public Message parse(DBObject doc) throws UnparsableException {
         if (!doc.containsField("op")) {
             LOG.debug("Not parsing profile info with no op.");
             throw new UnparsableException();
         }
+
+        Timer.Context ctx = timer.time();
 
         Message msg = new Message(
                 buildShortMessage(doc),
@@ -36,6 +49,8 @@ public class Parser {
 
         // Add all fields.
         msg.addFields(getFields(doc));
+
+        ctx.stop();
 
         return msg;
     }
@@ -65,6 +80,7 @@ public class Parser {
 
         Map<String, Object> fields = Maps.newHashMap();
 
+        // Standard fiels of every op type.
         fields.put("operation", doc.get("op"));
         fields.put("collection", collection);
         fields.put("database", database);
@@ -72,11 +88,31 @@ public class Parser {
         fields.put("client", doc.get("client"));
         fields.put("user", doc.get("user"));
 
-        // TODO: normalize, hash
-        fields.put("query", doc.get("query"));
-        fields.put("command", doc.get("command"));
-        fields.put("update_object", doc.get("updateobj"));
+        // Query.
+        if(doc.containsField("query")) {
+            Normalizer qN = new Normalizer((DBObject) doc.get("query"));
+            fields.put("query", doc.get("query"));
+            fields.put("query_full_hash", qN.getFullHash());
+            fields.put("query_fields_hash", qN.getFieldsHash());
+        }
 
+        // Command
+        if(doc.containsField("command")) {
+            Normalizer cN = new Normalizer((DBObject) doc.get("command"));
+            fields.put("command", doc.get("command"));
+            fields.put("command_full_hash", cN.getFullHash());
+            fields.put("command_fields_hash", cN.getFieldsHash());
+        }
+
+        // Update object.
+        if(doc.containsField("updateobj")) {
+            Normalizer uoN = new Normalizer((DBObject) doc.get("updateobj"));
+            fields.put("update_object", doc.get("updateobj"));
+            fields.put("update_object_full_hash", uoN.getFullHash());
+            fields.put("update_object_fields_hash", uoN.getFieldsHash());
+        }
+
+        // Some of these will/might be NULL.
         fields.put("cursor_id", doc.get("cursorid"));
         fields.put("docs_to_skip", getIntFieldNotZero(doc, "ntoskip"));
         fields.put("docs_to_return", getIntFieldNotZero(doc, "ntoreturn"));
@@ -90,6 +126,8 @@ public class Parser {
         fields.put("docs_returned", getIntFieldNotZero(doc, "nreturned"));
         fields.put("response_bytes", doc.get("responseLength"));
 
+
+        // Lock stats.
         if (doc.containsField("lockStats")) {
             fields.putAll(lockStats(doc));
         }

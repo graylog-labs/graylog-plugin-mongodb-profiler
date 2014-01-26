@@ -6,10 +6,12 @@
  */
 package com.graylog2.inputs.mongoprofiler;
 
-import com.google.common.collect.Maps;
 import com.mongodb.MongoClient;
+import com.mongodb.MongoCredential;
+import com.mongodb.ServerAddress;
 import org.graylog2.plugin.configuration.ConfigurationException;
 import org.graylog2.plugin.configuration.ConfigurationRequest;
+import org.graylog2.plugin.configuration.fields.BooleanField;
 import org.graylog2.plugin.configuration.fields.ConfigurationField;
 import org.graylog2.plugin.configuration.fields.NumberField;
 import org.graylog2.plugin.configuration.fields.TextField;
@@ -19,6 +21,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.net.UnknownHostException;
+import java.util.ArrayList;
 import java.util.Map;
 
 /**
@@ -33,6 +36,9 @@ public class MongoDBProfilerInput extends MessageInput {
     private static final String CK_MONGO_HOST = "mongo_host";
     private static final String CK_MONGO_PORT = "mongo_port";
     private static final String CK_MONGO_DB = "mongo_db";
+    private static final String CK_MONGO_USE_AUTH = "mongo_use_auth";
+    private static final String CK_MONGO_USER = "mongo_user";
+    private static final String CK_MONGO_PW = "mongo_password";
 
     private ProfileSubscriber subscriber;
 
@@ -42,16 +48,39 @@ public class MongoDBProfilerInput extends MessageInput {
 
         MongoClient mongoClient;
         try {
-            mongoClient = new MongoClient(configuration.getString(CK_MONGO_HOST), (int) configuration.getInt(CK_MONGO_PORT));
+            ServerAddress serverAddress = new ServerAddress(
+                    configuration.getString(CK_MONGO_HOST),
+                    (int) configuration.getInt(CK_MONGO_PORT)
+            );
+
+            if (configuration.getBoolean(CK_MONGO_USE_AUTH)) {
+                final MongoCredential credentials = MongoCredential.createMongoCRCredential(
+                        configuration.getString(CK_MONGO_USER),
+                        configuration.getString(CK_MONGO_DB),
+                        configuration.getString(CK_MONGO_PW).toCharArray()
+                );
+
+                mongoClient = new MongoClient(serverAddress, new ArrayList<MongoCredential>(){{ add(credentials); }});
+            } else {
+                mongoClient = new MongoClient(serverAddress);
+            }
         } catch (UnknownHostException e) {
             throw new MisfireException("Could not connect to MongoDB. Unknown host.", e);
+        }
+
+        // Try the connection.
+        try {
+            mongoClient.getDB(configuration.getString(CK_MONGO_DB)).getStats();
+        } catch (Exception e) {
+            throw new MisfireException("Could not verify MongoDB profiler connection.", e);
         }
 
         subscriber = new ProfileSubscriber(
                 mongoClient,
                 configuration.getString(CK_MONGO_DB),
                 graylogServer.getProcessBuffer(),
-                this
+                this,
+                graylogServer
         );
 
         subscriber.start();
@@ -103,12 +132,44 @@ public class MongoDBProfilerInput extends MessageInput {
                         ConfigurationField.Optional.NOT_OPTIONAL)
         );
 
+        request.addField(
+                new BooleanField(
+                        CK_MONGO_USE_AUTH,
+                        "Use authentication?",
+                        false,
+                        "Use MongoDB authentication?"
+                )
+        );
+
+        request.addField(
+                new TextField(
+                        CK_MONGO_USER,
+                        "MongoDB user",
+                        "",
+                        "MongoDB username. Only used if authentication is enabled.",
+                        ConfigurationField.Optional.OPTIONAL)
+        );
+
+        request.addField(
+                new TextField(
+                        CK_MONGO_PW,
+                        "MongoDB password",
+                        "",
+                        "MongoDB password. Only used if authentication is enabled. Note that this is stored unencrypted",
+                        ConfigurationField.Optional.OPTIONAL,
+                        TextField.Attribute.IS_PASSWORD
+                )
+        );
+
         return request;
     }
 
     @Override
     public void checkConfiguration() throws ConfigurationException {
-        if (configuration == null || !configuration.stringIsSet(CK_MONGO_HOST) || !configuration.intIsSet(CK_MONGO_PORT) || !configuration.stringIsSet(CK_MONGO_DB)) {
+        if (configuration == null
+                || !configuration.stringIsSet(CK_MONGO_HOST)
+                || !configuration.intIsSet(CK_MONGO_PORT)
+                || !configuration.stringIsSet(CK_MONGO_DB)) {
             throw new ConfigurationException();
         }
     }
@@ -125,7 +186,7 @@ public class MongoDBProfilerInput extends MessageInput {
 
     @Override
     public Map<String, Object> getAttributes() {
-        return Maps.newHashMap();
+        return configuration.getSource();
     }
 
 }

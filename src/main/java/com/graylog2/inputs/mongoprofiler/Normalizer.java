@@ -19,19 +19,28 @@ import java.util.TreeMap;
  */
 public class Normalizer {
 
-    private final DBObject obj;
     private final TreeMap<String, Object> sortedMap;
 
     public Normalizer(DBObject obj) {
-        this.obj = obj;
         this.sortedMap = sort(obj);
     }
 
-    public String getExactHash() {
+    public String getFullHash() {
         StringBuilder sb = new StringBuilder("|");
 
         // Hell recursion into all the nested levels. #neverForget
-        appendStringMap(sb, sortedMap);
+        appendFullStringMap(sb, sortedMap);
+
+        sb.append("|");
+
+        return md5(sb.toString());
+    }
+
+    public String getFieldsHash() {
+        StringBuilder sb = new StringBuilder("|");
+
+        // Hell recursion into all the nested levels. #neverForget
+        appendFieldsStringMap(sb, sortedMap);
 
         sb.append("|");
 
@@ -77,14 +86,29 @@ public class Normalizer {
         return sorted;
     }
 
-    public void appendStringMap(StringBuilder sb, TreeMap<String, Object> map) {
+    public void appendFullStringMap(StringBuilder sb, TreeMap<String, Object> map) {
         for (Map.Entry<String, Object> x : map.entrySet()) {
             if (x.getValue() instanceof TreeMap) {
                 sb.append("{");
-                appendStringMap(sb, (TreeMap) x.getValue());
+                appendFullStringMap(sb, (TreeMap) x.getValue());
                 sb.append("},");
             } else {
                 sb.append(x.getKey()).append(":").append(x.getValue()).append(",");
+            }
+        }
+
+        // Remove last comma.
+        sb.deleteCharAt(sb.toString().length()-1);
+    }
+
+    public void appendFieldsStringMap(StringBuilder sb, TreeMap<String, Object> map) {
+        for (Map.Entry<String, Object> x : map.entrySet()) {
+            if (x.getValue() instanceof TreeMap) {
+                sb.append("{");
+                appendFieldsStringMap(sb, (TreeMap) x.getValue());
+                sb.append("},");
+            } else {
+                sb.append(x.getKey()).append(",");
             }
         }
 
