@@ -4,7 +4,7 @@
  * This file is part of Graylog2 Enterprise.
  *
  */
-package com.graylog2.inputs;
+package com.graylog2.inputs.mongoprofiler;
 
 import com.google.common.collect.Maps;
 import com.mongodb.MongoClient;
@@ -47,7 +47,13 @@ public class MongoDBProfilerInput extends MessageInput {
             throw new MisfireException("Could not connect to MongoDB. Unknown host.", e);
         }
 
-        subscriber = new ProfileSubscriber(mongoClient, configuration.getString(CK_MONGO_DB));
+        subscriber = new ProfileSubscriber(
+                mongoClient,
+                configuration.getString(CK_MONGO_DB),
+                graylogServer.getProcessBuffer(),
+                this
+        );
+
         subscriber.start();
     }
 

@@ -1,28 +1,19 @@
 /**
- * Copyright 2014 Lennart Koopmann <lennart@torch.sh>
+ * Copyright 2014 TORCH GmbH <hello@torch.sh>
  *
- * This file is part of Graylog2.
- *
- * Graylog2 is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- *
- * Graylog2 is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with Graylog2.  If not, see <http://www.gnu.org/licenses/>.
+ * This file is part of Graylog2 Enterprise.
  *
  */
-package com.graylog2.inputs;
+package com.graylog2.inputs.mongoprofiler;
 
 import com.mongodb.*;
+import org.graylog2.plugin.Message;
+import org.graylog2.plugin.buffers.Buffer;
+import org.graylog2.plugin.inputs.MessageInput;
+import org.joda.time.DateTime;
+import org.joda.time.DateTimeZone;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
 
 /**
  * @author Lennart Koopmann <lennart@torch.sh>
@@ -35,10 +26,15 @@ public class ProfileSubscriber extends Thread {
     private final DB db;
     private final DBCollection profile;
 
+    private final Parser parser;
+
+    private final MessageInput sourceInput;
+    private final Buffer targetBuffer;
+
     private boolean stopRequested = false;
 
-    public ProfileSubscriber(MongoClient mongoClient, String dbName) {
-        LOG.info("Connection ProfileSubscriber.");
+    public ProfileSubscriber(MongoClient mongoClient, String dbName, Buffer targetBuffer, MessageInput sourceInput) {
+        LOG.info("Connecting ProfileSubscriber.");
 
         this.mongoClient = mongoClient;
 
@@ -48,6 +44,11 @@ public class ProfileSubscriber extends Thread {
         if(!this.profile.isCapped()) {
             throw new RuntimeException("The system.profile collections seems to be not capped.");
         }
+
+        parser = new Parser();
+
+        this.targetBuffer = targetBuffer;
+        this.sourceInput = sourceInput;
     }
 
     @Override
@@ -55,7 +56,7 @@ public class ProfileSubscriber extends Thread {
         while(!stopRequested) {
             try {
                 LOG.info("Building new cursor.");
-                DBCursor cursor = profile.find()
+                DBCursor cursor = profile.find(query())
                         .sort(new BasicDBObject("$natural", 1))
                         .addOption(Bytes.QUERYOPTION_TAILABLE)
                         .addOption(Bytes.QUERYOPTION_AWAITDATA);
@@ -64,17 +65,20 @@ public class ProfileSubscriber extends Thread {
                     while(cursor.hasNext()) {
                         if (stopRequested) {
                             LOG.info("Stop requested.");
-                            break;
+                            return;
                         }
 
-                        DBObject doc = cursor.next();
+                        try {
+                            Message message = parser.parse(cursor.next());
 
-                        // We do not want to log our own tail queries.
-                        if (doc.containsField("ns") && ((String) doc.get("ns")).endsWith(".system.profile")){
+                            targetBuffer.insertCached(message, sourceInput);
+                        } catch(Parser.UnparsableException e) {
+                            LOG.error("Cannot parse profile info.", e);
+                            continue;
+                        } catch(Exception e) {
+                            LOG.error("Error when trying to parse profile info.", e);
                             continue;
                         }
-
-                        System.out.println(doc);
                     }
                 } finally {
                     if (cursor != null) {
@@ -82,15 +86,12 @@ public class ProfileSubscriber extends Thread {
                     }
                 }
             } catch (Exception e) {
-                LOG.error("Error when reading MongoDB profile information. Retrying.");
+                LOG.error("Error when reading MongoDB profile information. Retrying.", e);
             }
 
             // Something broke if we get here. Retry soonish.
             try {
-                if(!stopRequested) {
-                    LOG.info("Stop requested.");
-                    Thread.sleep(2500);
-                }
+                if(!stopRequested) { Thread.sleep(2500); }
             } catch (InterruptedException e) { break; }
         }
     }
@@ -101,6 +102,14 @@ public class ProfileSubscriber extends Thread {
         if(mongoClient != null) {
             mongoClient.close();
         }
+    }
+
+    public DBObject query() {
+        return QueryBuilder
+                .start("ts").greaterThan(DateTime.now(DateTimeZone.UTC).toDate())
+                .and("ns").notEquals(db.getName() + ".system.profile")
+                .get();
+
     }
 
 }
