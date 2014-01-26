@@ -1,27 +1,16 @@
 /**
- * Copyright 2014 Lennart Koopmann <lennart@torch.sh>
+ * Copyright 2014 TORCH GmbH <hello@torch.sh>
  *
- * This file is part of Graylog2.
- *
- * Graylog2 is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- *
- * Graylog2 is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with Graylog2.  If not, see <http://www.gnu.org/licenses/>.
+ * This file is part of Graylog2 Enterprise.
  *
  */
 package com.graylog2.inputs.mongoprofiler;
 
+import com.mongodb.BasicDBObject;
+import com.mongodb.DBObject;
 import org.junit.Test;
 
-import static org.junit.Assert.fail;
+import static org.junit.Assert.assertEquals;
 
 /**
  * @author Lennart Koopmann <lennart@torch.sh>
@@ -29,8 +18,90 @@ import static org.junit.Assert.fail;
 public class NormalizerTest {
 
     @Test
-    public void testGetExactHash() throws Exception {
-        fail();
+    public void testSimpleGetExactHash() throws Exception {
+        DBObject dbo = new BasicDBObject("stream_id", "12345678abc");
+        Normalizer n = new Normalizer(dbo);
+
+        assertEquals("189cf4b41c6ea04e19a255c3d360466b", n.getExactHash());
     }
+
+    @Test
+    public void testSimpleGetExactHashWithNumber() throws Exception {
+        DBObject dbo = new BasicDBObject("stream_id", 9001);
+        Normalizer n = new Normalizer(dbo);
+
+        assertEquals("b1754def5db4adee35a25c639da5bd93", n.getExactHash());
+    }
+
+    @Test
+    public void testSimpleGetExactHashWithBoolean() throws Exception {
+        DBObject dbo = new BasicDBObject("has_stream", true);
+        Normalizer n = new Normalizer(dbo);
+
+        assertEquals("fb567d7d66c9c5afaff2922c7b6342be", n.getExactHash());
+    }
+
+    @Test
+    public void testOrderingOfGetExactHash() throws Exception {
+        DBObject dbo1 = new BasicDBObject();
+        dbo1.put("stream_id", "12345678abc");
+        dbo1.put("username", "lennart");
+        dbo1.put("x", "y");
+        dbo1.put("foo", "bar");
+
+        DBObject dbo2 = new BasicDBObject();
+        dbo2.put("username", "lennart");
+        dbo2.put("foo", "bar");
+        dbo2.put("stream_id", "12345678abc");
+        dbo2.put("x", "y");
+
+        Normalizer n1 = new Normalizer(dbo1);
+        Normalizer n2 = new Normalizer(dbo2);
+
+        assertEquals("88aee2995b1c91bab6dbfa1cf7ad43e6", n1.getExactHash());
+        assertEquals("88aee2995b1c91bab6dbfa1cf7ad43e6", n2.getExactHash());
+    }
+
+    @Test
+    public void testMultiLevelOrderingOfGetExactHash() throws Exception {
+        DBObject dbo1 = new BasicDBObject();
+        dbo1.put("stream_id", "12345678abc");
+        dbo1.put("username", "lennart");
+        dbo1.put("x", "y");
+        dbo1.put("foo", "bar");
+
+        DBObject deep1_1 = new BasicDBObject();
+        DBObject deep1_2 = new BasicDBObject();
+        deep1_2.put("$gt", 5);
+        deep1_2.put("$lt", 11);
+        deep1_1.put("wat", "wut");
+        deep1_1.put("why", "because");
+        deep1_1.put("num", deep1_2);
+
+        dbo1.put("sodeep", deep1_1);
+
+        DBObject dbo2 = new BasicDBObject();
+        dbo2.put("username", "lennart");
+        dbo2.put("foo", "bar");
+        dbo2.put("stream_id", "12345678abc");
+        dbo2.put("x", "y");
+
+        DBObject deep2_1 = new BasicDBObject();
+        DBObject deep2_2 = new BasicDBObject();
+        deep2_2.put("$lt", 11);
+        deep2_2.put("$gt", 5);
+        deep2_1.put("wat", "wut");
+        deep2_1.put("num", deep1_2);
+        deep2_1.put("why", "because");
+
+        dbo2.put("sodeep", deep2_1);
+
+        Normalizer n1 = new Normalizer(dbo1);
+        Normalizer n2 = new Normalizer(dbo2);
+
+        assertEquals("6e4f0ac5dd1f2f497f55f27a8e253963", n1.getExactHash());
+        assertEquals("6e4f0ac5dd1f2f497f55f27a8e253963", n2.getExactHash());
+    }
+
 
 }

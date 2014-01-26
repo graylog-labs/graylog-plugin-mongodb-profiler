@@ -1,25 +1,18 @@
 /**
- * Copyright 2014 Lennart Koopmann <lennart@torch.sh>
+ * Copyright 2014 TORCH GmbH <hello@torch.sh>
  *
- * This file is part of Graylog2.
- *
- * Graylog2 is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- *
- * Graylog2 is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with Graylog2.  If not, see <http://www.gnu.org/licenses/>.
+ * This file is part of Graylog2 Enterprise.
  *
  */
 package com.graylog2.inputs.mongoprofiler;
 
+import com.google.common.collect.Maps;
 import com.mongodb.DBObject;
+
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+import java.util.Map;
+import java.util.TreeMap;
 
 /**
  * @author Lennart Koopmann <lennart@torch.sh>
@@ -27,13 +20,76 @@ import com.mongodb.DBObject;
 public class Normalizer {
 
     private final DBObject obj;
+    private final TreeMap<String, Object> sortedMap;
 
     public Normalizer(DBObject obj) {
         this.obj = obj;
+        this.sortedMap = sort(obj);
     }
 
     public String getExactHash() {
-        return "";
+        StringBuilder sb = new StringBuilder("|");
+
+        // Hell recursion into all the nested levels. #neverForget
+        appendStringMap(sb, sortedMap);
+
+        sb.append("|");
+
+        return md5(sb.toString());
+    }
+
+    private String md5(String x) {
+        MessageDigest md;
+
+        try {
+            md = MessageDigest.getInstance("MD5");
+        } catch (NoSuchAlgorithmException e) {
+            throw new RuntimeException(e);
+        }
+
+        byte[] digestresult = md.digest(x.getBytes());
+        StringBuffer hex = new StringBuffer();
+
+        for (int i = 0; i < digestresult.length; i++) {
+            if ((0xff & digestresult[i]) < 0x10) {
+                hex.append("0").append(Integer.toHexString((0xFF & digestresult[i])));
+            } else {
+                hex.append(Integer.toHexString(0xFF & digestresult[i]));
+            }
+        }
+
+        return hex.toString();
+    }
+
+    private TreeMap sort(DBObject obj) {
+        TreeMap sorted = Maps.newTreeMap();
+
+        for(String key : obj.keySet()) {
+            Object o = obj.get(key);
+
+            if (o instanceof DBObject) {
+                sorted.put(key, sort((DBObject) o));
+            } else {
+                sorted.put(key, o);
+            }
+        }
+
+        return sorted;
+    }
+
+    public void appendStringMap(StringBuilder sb, TreeMap<String, Object> map) {
+        for (Map.Entry<String, Object> x : map.entrySet()) {
+            if (x.getValue() instanceof TreeMap) {
+                sb.append("{");
+                appendStringMap(sb, (TreeMap) x.getValue());
+                sb.append("},");
+            } else {
+                sb.append(x.getKey()).append(":").append(x.getValue()).append(",");
+            }
+        }
+
+        // Remove last comma.
+        sb.deleteCharAt(sb.toString().length()-1);
     }
 
 }
