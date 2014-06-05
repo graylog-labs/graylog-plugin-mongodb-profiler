@@ -8,9 +8,8 @@ package com.graylog2.inputs.mongoprofiler;
 
 import com.mongodb.BasicDBObject;
 import com.mongodb.DBObject;
-import org.junit.Test;
-
-import static org.junit.Assert.assertEquals;
+import org.testng.annotations.Test;
+import static org.testng.AssertJUnit.assertEquals;
 
 /**
  * @author Lennart Koopmann <lennart@torch.sh>

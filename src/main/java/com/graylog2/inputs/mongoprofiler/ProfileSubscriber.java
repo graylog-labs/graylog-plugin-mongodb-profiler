@@ -7,8 +7,8 @@
 package com.graylog2.inputs.mongoprofiler;
 
 import com.codahale.metrics.Meter;
+import com.codahale.metrics.MetricRegistry;
 import com.mongodb.*;
-import org.graylog2.plugin.InputHost;
 import org.graylog2.plugin.Message;
 import org.graylog2.plugin.buffers.Buffer;
 import org.graylog2.plugin.inputs.MessageInput;
@@ -16,8 +16,6 @@ import org.joda.time.DateTime;
 import org.joda.time.DateTimeZone;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.util.Date;
 
 import static com.codahale.metrics.MetricRegistry.name;
 
@@ -36,14 +34,13 @@ public class ProfileSubscriber extends Thread {
 
     private final MessageInput sourceInput;
     private final Buffer targetBuffer;
-    private final InputHost graylogServer;
 
     private final Meter newCursors;
     private final Meter cursorReads;
 
     private boolean stopRequested = false;
 
-    public ProfileSubscriber(MongoClient mongoClient, String dbName, Buffer targetBuffer, MessageInput sourceInput, InputHost graylogServer) {
+    public ProfileSubscriber(MongoClient mongoClient, String dbName, Buffer targetBuffer, MessageInput sourceInput, MetricRegistry metricRegistry) {
         LOG.info("Connecting ProfileSubscriber.");
 
         this.mongoClient = mongoClient;
@@ -51,15 +48,14 @@ public class ProfileSubscriber extends Thread {
         this.db = mongoClient.getDB(dbName);
         this.profile = db.getCollection("system.profile");
 
-        parser = new Parser(graylogServer.metrics(), sourceInput);
+        parser = new Parser(metricRegistry, sourceInput);
 
         this.targetBuffer = targetBuffer;
         this.sourceInput = sourceInput;
-        this.graylogServer = graylogServer;
 
         String metricName = sourceInput.getUniqueReadableId();
-        this.cursorReads = graylogServer.metrics().meter(name(metricName, "cursorReads"));
-        this.newCursors = graylogServer.metrics().meter(name(metricName, "newCursors"));
+        this.cursorReads = metricRegistry.meter(name(metricName, "cursorReads"));
+        this.newCursors = metricRegistry.meter(name(metricName, "newCursors"));
     }
 
     @Override

@@ -6,10 +6,13 @@
  */
 package com.graylog2.inputs.mongoprofiler;
 
+import com.codahale.metrics.MetricRegistry;
 import com.google.common.collect.Lists;
+import com.google.inject.Inject;
 import com.mongodb.MongoClient;
 import com.mongodb.MongoCredential;
 import com.mongodb.ServerAddress;
+import org.graylog2.plugin.buffers.Buffer;
 import org.graylog2.plugin.configuration.ConfigurationException;
 import org.graylog2.plugin.configuration.ConfigurationRequest;
 import org.graylog2.plugin.configuration.fields.BooleanField;
@@ -34,6 +37,7 @@ public class MongoDBProfilerInput extends MessageInput {
     private static final Logger LOG = LoggerFactory.getLogger(MongoDBProfilerInput.class);
 
     private static final String NAME = "MongoDB profiler reader";
+    private final MetricRegistry metricRegistry;
 
     private static final String CK_MONGO_HOST = "mongo_host";
     private static final String CK_MONGO_PORT = "mongo_port";
@@ -44,8 +48,14 @@ public class MongoDBProfilerInput extends MessageInput {
 
     private ProfileSubscriber subscriber;
 
+    @Inject
+    public MongoDBProfilerInput(MetricRegistry metricRegistry) {
+        super();
+        this.metricRegistry = metricRegistry;
+    }
+
     @Override
-    public void launch() throws MisfireException {
+    public void launch(Buffer processBuffer) throws MisfireException {
         LOG.debug("Launching Mongo DB profiler reader.");
 
         String mongoHost = configuration.getString(CK_MONGO_HOST);
@@ -113,9 +123,9 @@ public class MongoDBProfilerInput extends MessageInput {
         subscriber = new ProfileSubscriber(
                 mongoClient,
                 configuration.getString(CK_MONGO_DB),
-                graylogServer.getProcessBuffer(),
+                processBuffer,
                 this,
-                graylogServer
+                metricRegistry
         );
 
         subscriber.start();
