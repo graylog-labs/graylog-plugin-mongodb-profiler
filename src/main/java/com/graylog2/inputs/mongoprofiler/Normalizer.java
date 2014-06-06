@@ -20,9 +20,14 @@ import java.util.TreeMap;
 public class Normalizer {
 
     private final TreeMap<String, Object> sortedMap;
+    private final String db;
+    private final String collection;
 
-    public Normalizer(DBObject obj) {
+    public Normalizer(DBObject obj, String db, String collection) {
         this.sortedMap = sort(obj);
+
+        this.db = db;
+        this.collection = collection;
     }
 
     public String getFullHash() {
@@ -33,7 +38,7 @@ public class Normalizer {
 
         sb.append("|");
 
-        return md5(sb.toString());
+        return hash(sb.toString());
     }
 
     public String getFieldsHash() {
@@ -44,10 +49,10 @@ public class Normalizer {
 
         sb.append("|");
 
-        return md5(sb.toString());
+        return hash(sb.toString());
     }
 
-    private String md5(String x) {
+    private String hash(String x) {
         MessageDigest md;
 
         try {
@@ -55,6 +60,13 @@ public class Normalizer {
         } catch (NoSuchAlgorithmException e) {
             throw new RuntimeException(e);
         }
+
+        /*
+         * We are adding the database and collection to the string because
+         * we might end up with the same fields hash when querying just for
+         * "_id" but in different collections.
+         */
+        x += collection+db;
 
         byte[] digestresult = md.digest(x.getBytes());
         StringBuffer hex = new StringBuffer();

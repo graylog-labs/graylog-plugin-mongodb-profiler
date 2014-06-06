@@ -93,7 +93,7 @@ public class Parser {
 
         // Query.
         if(doc.containsField("query")) {
-            Normalizer qN = new Normalizer((DBObject) doc.get("query"));
+            Normalizer qN = new Normalizer((DBObject) doc.get("query"), database, collection);
             fields.put("query", doc.get("query"));
             fields.put("query_full_hash", qN.getFullHash());
             fields.put("query_fields_hash", qN.getFieldsHash());
@@ -101,7 +101,7 @@ public class Parser {
 
         // Command
         if(doc.containsField("command")) {
-            Normalizer cN = new Normalizer((DBObject) doc.get("command"));
+            Normalizer cN = new Normalizer((DBObject) doc.get("command"), database, collection);
             fields.put("command", doc.get("command"));
             fields.put("command_full_hash", cN.getFullHash());
             fields.put("command_fields_hash", cN.getFieldsHash());
@@ -109,7 +109,7 @@ public class Parser {
 
         // Update object.
         if(doc.containsField("updateobj")) {
-            Normalizer uoN = new Normalizer((DBObject) doc.get("updateobj"));
+            Normalizer uoN = new Normalizer((DBObject) doc.get("updateobj"), database, collection);
             fields.put("update_object", doc.get("updateobj"));
             fields.put("update_object_full_hash", uoN.getFullHash());
             fields.put("update_object_fields_hash", uoN.getFieldsHash());

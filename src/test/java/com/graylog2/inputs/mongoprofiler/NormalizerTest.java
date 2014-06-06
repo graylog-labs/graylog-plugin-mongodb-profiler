@@ -9,7 +9,8 @@ package com.graylog2.inputs.mongoprofiler;
 import com.mongodb.BasicDBObject;
 import com.mongodb.DBObject;
 import org.testng.annotations.Test;
-import static org.testng.AssertJUnit.assertEquals;
+
+import static org.testng.AssertJUnit.*;
 
 /**
  * @author Lennart Koopmann <lennart@torch.sh>
@@ -19,29 +20,29 @@ public class NormalizerTest {
     @Test
     public void testSimpleHash() throws Exception {
         DBObject dbo = new BasicDBObject("stream_id", "12345678abc");
-        Normalizer n = new Normalizer(dbo);
+        Normalizer n = new Normalizer(dbo, "db", "coll");
 
-        assertEquals("189cf4b41c6ea04e19a255c3d360466b", n.getFullHash());
-        assertEquals("c6296b9acab9696be7a45871a815468b", n.getFieldsHash());
+        assertEquals("23ae16c6c521a9481450439715a5222a", n.getFullHash());
+        assertEquals("f29c81f1601cbf3fd843283da6a67cd5", n.getFieldsHash());
     }
 
     @Test
     public void testSimpleHashWithNumber() throws Exception {
         DBObject dbo = new BasicDBObject("stream_id", 9001);
-        Normalizer n = new Normalizer(dbo);
+        Normalizer n = new Normalizer(dbo, "db", "coll");
 
-        assertEquals("b1754def5db4adee35a25c639da5bd93", n.getFullHash());
-        assertEquals("c6296b9acab9696be7a45871a815468b", n.getFieldsHash());
+        assertEquals("24d3a63ba4a56fbb5c359fd3375cf4f8", n.getFullHash());
+        assertEquals("f29c81f1601cbf3fd843283da6a67cd5", n.getFieldsHash());
 
     }
 
     @Test
     public void testSimpleHashWithBoolean() throws Exception {
         DBObject dbo = new BasicDBObject("has_stream", true);
-        Normalizer n = new Normalizer(dbo);
+        Normalizer n = new Normalizer(dbo, "db", "coll");
 
-        assertEquals("fb567d7d66c9c5afaff2922c7b6342be", n.getFullHash());
-        assertEquals("fbea9f2632b5244529be39cd4f731c63", n.getFieldsHash());
+        assertEquals("efc823e6e92ac6c84d4c1d68d9377b8f", n.getFullHash());
+        assertEquals("27a4aceb03a1471d8388ef418014b3c0", n.getFieldsHash());
     }
 
     @Test
@@ -58,14 +59,14 @@ public class NormalizerTest {
         dbo2.put("stream_id", "12345678abc");
         dbo2.put("x", "y");
 
-        Normalizer n1 = new Normalizer(dbo1);
-        Normalizer n2 = new Normalizer(dbo2);
+        Normalizer n1 = new Normalizer(dbo1, "db", "coll");
+        Normalizer n2 = new Normalizer(dbo2, "db", "coll");
 
-        assertEquals("88aee2995b1c91bab6dbfa1cf7ad43e6", n1.getFullHash());
-        assertEquals("88aee2995b1c91bab6dbfa1cf7ad43e6", n2.getFullHash());
+        assertEquals("ef4fefee3f427f200fecdcc6bbe9a3d1", n1.getFullHash());
+        assertEquals("ef4fefee3f427f200fecdcc6bbe9a3d1", n2.getFullHash());
 
-        assertEquals("91ed0270c36ad217aab02852972499e8", n1.getFieldsHash());
-        assertEquals("91ed0270c36ad217aab02852972499e8", n2.getFieldsHash());
+        assertEquals("c8fef00c8830633aa912c3490353d8ae", n1.getFieldsHash());
+        assertEquals("c8fef00c8830633aa912c3490353d8ae", n2.getFieldsHash());
     }
 
     @Test
@@ -102,14 +103,14 @@ public class NormalizerTest {
 
         dbo2.put("sodeep", deep2_1);
 
-        Normalizer n1 = new Normalizer(dbo1);
-        Normalizer n2 = new Normalizer(dbo2);
+        Normalizer n1 = new Normalizer(dbo1, "db", "coll");
+        Normalizer n2 = new Normalizer(dbo2, "db", "coll");
 
-        assertEquals("6e4f0ac5dd1f2f497f55f27a8e253963", n1.getFullHash());
-        assertEquals("6e4f0ac5dd1f2f497f55f27a8e253963", n2.getFullHash());
+        assertEquals("474fa0d9b8d4ba9f82044e30c24ccd12", n1.getFullHash());
+        assertEquals("474fa0d9b8d4ba9f82044e30c24ccd12", n2.getFullHash());
 
-        assertEquals("5dff59c59c292b1781baa7c7929e83a1", n1.getFieldsHash());
-        assertEquals("5dff59c59c292b1781baa7c7929e83a1", n2.getFieldsHash());
+        assertEquals("a983077409137ef798a8d27fa560efd3", n1.getFieldsHash());
+        assertEquals("a983077409137ef798a8d27fa560efd3", n2.getFieldsHash());
     }
 
     @Test
@@ -126,11 +127,11 @@ public class NormalizerTest {
         dbo2.put("stream_id", 9001);
         dbo2.put("x", "y");
 
-        Normalizer n1 = new Normalizer(dbo1);
-        Normalizer n2 = new Normalizer(dbo2);
+        Normalizer n1 = new Normalizer(dbo1, "db", "coll");
+        Normalizer n2 = new Normalizer(dbo2, "db", "coll");
 
-        assertEquals("91ed0270c36ad217aab02852972499e8", n1.getFieldsHash());
-        assertEquals("91ed0270c36ad217aab02852972499e8", n2.getFieldsHash());
+        assertEquals("c8fef00c8830633aa912c3490353d8ae", n1.getFieldsHash());
+        assertEquals("c8fef00c8830633aa912c3490353d8ae", n2.getFieldsHash());
     }
 
     @Test
@@ -167,11 +168,83 @@ public class NormalizerTest {
 
         dbo2.put("sodeep", deep2_1);
 
-        Normalizer n1 = new Normalizer(dbo1);
-        Normalizer n2 = new Normalizer(dbo2);
+        Normalizer n1 = new Normalizer(dbo1, "db", "coll");
+        Normalizer n2 = new Normalizer(dbo2, "db", "coll");
 
-        assertEquals("5dff59c59c292b1781baa7c7929e83a1", n1.getFieldsHash());
-        assertEquals("5dff59c59c292b1781baa7c7929e83a1", n2.getFieldsHash());
+        assertEquals("a983077409137ef798a8d27fa560efd3", n1.getFieldsHash());
+        assertEquals("a983077409137ef798a8d27fa560efd3", n2.getFieldsHash());
+    }
+
+    @Test
+    public void testSameQueryBuildsDifferentFieldsHashOnDifferentDb() throws Exception {
+        DBObject dbo1 = new BasicDBObject();
+        dbo1.put("stream_id", "12345678abc");
+        dbo1.put("username", "lennart");
+        dbo1.put("x", "y");
+
+        DBObject dbo2 = new BasicDBObject();
+        dbo2.put("stream_id", "12345678abc");
+        dbo2.put("username", "lennart");
+        dbo2.put("x", "y");
+
+        Normalizer n1 = new Normalizer(dbo1, "db", "coll");
+        Normalizer n2 = new Normalizer(dbo2, "db2", "coll");
+
+        assertFalse(n1.getFieldsHash().equals(n2.getFieldsHash()));
+    }
+
+    @Test
+    public void testSameQueryBuildsDifferentFieldsHashOnDifferentCollection() throws Exception {
+        DBObject dbo1 = new BasicDBObject();
+        dbo1.put("stream_id", "12345678abc");
+        dbo1.put("username", "lennart");
+        dbo1.put("x", "y");
+
+        DBObject dbo2 = new BasicDBObject();
+        dbo2.put("stream_id", "12345678abc");
+        dbo2.put("username", "lennart");
+        dbo2.put("x", "y");
+
+        Normalizer n1 = new Normalizer(dbo1, "db", "coll");
+        Normalizer n2 = new Normalizer(dbo2, "db", "coll2");
+
+        assertFalse(n1.getFieldsHash().equals(n2.getFieldsHash()));
+    }
+
+    @Test
+    public void testSameQueryBuildsDifferentHashOnDifferentDb() throws Exception {
+        DBObject dbo1 = new BasicDBObject();
+        dbo1.put("stream_id", "12345678abc");
+        dbo1.put("username", "lennart");
+        dbo1.put("x", "y");
+
+        DBObject dbo2 = new BasicDBObject();
+        dbo2.put("stream_id", "12345678abc");
+        dbo2.put("username", "lennart");
+        dbo2.put("x", "y");
+
+        Normalizer n1 = new Normalizer(dbo1, "db", "coll");
+        Normalizer n2 = new Normalizer(dbo2, "db2", "coll");
+
+        assertFalse(n1.getFullHash().equals(n2.getFullHash()));
+    }
+
+    @Test
+    public void testSameQueryBuildsDifferentHashOnDifferentCollection() throws Exception {
+        DBObject dbo1 = new BasicDBObject();
+        dbo1.put("stream_id", "12345678abc");
+        dbo1.put("username", "lennart");
+        dbo1.put("x", "y");
+
+        DBObject dbo2 = new BasicDBObject();
+        dbo2.put("stream_id", "12345678abc");
+        dbo2.put("username", "lennart");
+        dbo2.put("x", "y");
+
+        Normalizer n1 = new Normalizer(dbo1, "db", "coll");
+        Normalizer n2 = new Normalizer(dbo2, "db", "coll2");
+
+        assertFalse(n1.getFullHash().equals(n2.getFullHash()));
     }
 
 }
