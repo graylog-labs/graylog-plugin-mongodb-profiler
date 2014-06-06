@@ -35,6 +35,8 @@ public class MongoDBProfilerInput extends MessageInput {
 
     private static final String NAME = "MongoDB profiler reader";
 
+    public static final int G2E_ID = 0;
+
     private static final String CK_MONGO_HOST = "mongo_host";
     private static final String CK_MONGO_PORT = "mongo_port";
     private static final String CK_MONGO_DB = "mongo_db";

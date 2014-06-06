@@ -50,6 +50,9 @@ public class Parser {
         // Add all fields.
         msg.addFields(getFields(doc));
 
+        // Add our product ID.
+        msg.addField("g2eid", MongoDBProfilerInput.G2E_ID);
+
         ctx.stop();
 
         return msg;
