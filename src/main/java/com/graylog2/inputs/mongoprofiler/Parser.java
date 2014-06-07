@@ -7,6 +7,8 @@
 package com.graylog2.inputs.mongoprofiler;
 
 import com.codahale.metrics.Timer;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.Maps;
 import com.mongodb.DBObject;
 import com.codahale.metrics.MetricRegistry;
@@ -28,9 +30,12 @@ public class Parser {
     private static final Logger LOG = LoggerFactory.getLogger(Parser.class);
 
     private final Timer timer;
+    private final ObjectMapper om;
 
     public Parser(MetricRegistry metrics, MessageInput sourceInput) {
         this.timer = metrics.timer(name(sourceInput.getUniqueReadableId(), "parseTime"));
+
+        this.om = new ObjectMapper();
     }
 
     public Message parse(DBObject doc) throws UnparsableException {
@@ -83,7 +88,7 @@ public class Parser {
 
         Map<String, Object> fields = Maps.newHashMap();
 
-        // Standard fiels of every op type.
+        // Standard fields of every op type.
         fields.put("operation", doc.get("op"));
         fields.put("collection", collection);
         fields.put("database", database);
@@ -93,26 +98,38 @@ public class Parser {
 
         // Query.
         if(doc.containsField("query")) {
-            Normalizer qN = new Normalizer((DBObject) doc.get("query"), database, collection);
-            fields.put("query", doc.get("query"));
-            fields.put("query_full_hash", qN.getFullHash());
-            fields.put("query_fields_hash", qN.getFieldsHash());
+            try {
+                Normalizer qN = new Normalizer((DBObject) doc.get("query"), database, collection);
+                fields.put("query", om.writeValueAsString(doc.get("query")));
+                fields.put("query_full_hash", qN.getFullHash());
+                fields.put("query_fields_hash", qN.getFieldsHash());
+            } catch(JsonProcessingException e) {
+                LOG.error("Could not parse MongoDB query to JSON. Not including in fields. Query: " + doc.get("query"), e);
+            }
         }
 
         // Command
         if(doc.containsField("command")) {
-            Normalizer cN = new Normalizer((DBObject) doc.get("command"), database, collection);
-            fields.put("command", doc.get("command"));
-            fields.put("command_full_hash", cN.getFullHash());
-            fields.put("command_fields_hash", cN.getFieldsHash());
+            try {
+                Normalizer cN = new Normalizer((DBObject) doc.get("command"), database, collection);
+                fields.put("command", om.writeValueAsString(doc.get("command")));
+                fields.put("command_full_hash", cN.getFullHash());
+                fields.put("command_fields_hash", cN.getFieldsHash());
+            } catch(JsonProcessingException e) {
+                LOG.error("Could not parse MongoDB command to JSON. Not including in fields. Command: " + doc.get("command"), e);
+            }
         }
 
         // Update object.
         if(doc.containsField("updateobj")) {
-            Normalizer uoN = new Normalizer((DBObject) doc.get("updateobj"), database, collection);
-            fields.put("update_object", doc.get("updateobj"));
-            fields.put("update_object_full_hash", uoN.getFullHash());
-            fields.put("update_object_fields_hash", uoN.getFieldsHash());
+            try {
+                Normalizer uoN = new Normalizer((DBObject) doc.get("updateobj"), database, collection);
+                fields.put("update_object", om.writeValueAsString(doc.get("updateobj")));
+                fields.put("update_object_full_hash", uoN.getFullHash());
+                fields.put("update_object_fields_hash", uoN.getFieldsHash());
+            } catch(JsonProcessingException e) {
+                LOG.error("Could not parse MongoDB update object to JSON. Not including in fields. Update object: " + doc.get("updateobj"), e);
+            }
         }
 
         // Some of these will/might be NULL.
