@@ -9,9 +9,12 @@ package com.graylog2.inputs.mongoprofiler;
 import com.codahale.metrics.Timer;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.module.SimpleModule;
+import com.fasterxml.jackson.core.Version;
 import com.google.common.collect.Maps;
 import com.mongodb.DBObject;
 import com.codahale.metrics.MetricRegistry;
+import org.bson.types.ObjectId;
 import org.graylog2.plugin.Message;
 import org.graylog2.plugin.inputs.MessageInput;
 import org.joda.time.DateTime;
@@ -36,6 +39,9 @@ public class Parser {
         this.timer = metrics.timer(name(sourceInput.getUniqueReadableId(), "parseTime"));
 
         this.om = new ObjectMapper();
+        SimpleModule bsonModule = new SimpleModule("BSONObjectIdParser", Version.unknownVersion());
+        bsonModule.addSerializer(ObjectId.class, new ObjectIdSerializer());
+        om.registerModule(bsonModule);
     }
 
     public Message parse(DBObject doc) throws UnparsableException {
