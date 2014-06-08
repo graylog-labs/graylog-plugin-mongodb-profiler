@@ -113,8 +113,8 @@ public class Parser {
             try {
                 Normalizer cN = new Normalizer((DBObject) doc.get("command"), database, collection);
                 fields.put("command", om.writeValueAsString(doc.get("command")));
-                fields.put("command_full_hash", cN.getFullHash());
-                fields.put("command_fields_hash", cN.getFieldsHash());
+                fields.put("query_full_hash", cN.getFullHash());
+                fields.put("query_fields_hash", cN.getFieldsHash());
             } catch(JsonProcessingException e) {
                 LOG.error("Could not parse MongoDB command to JSON. Not including in fields. Command: " + doc.get("command"), e);
             }
