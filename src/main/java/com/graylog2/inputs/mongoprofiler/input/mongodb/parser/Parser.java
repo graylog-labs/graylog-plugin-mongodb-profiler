@@ -29,7 +29,7 @@ public class Parser {
 
     public Parser() {
         this.om = new ObjectMapper();
-        SimpleModule bsonModule = new SimpleModule("BSONObqueryjectIdParser", Version.unknownVersion());
+        SimpleModule bsonModule = new SimpleModule("BSONObjectIdParser", Version.unknownVersion());
         bsonModule.addSerializer(ObjectId.class, new ObjectIdSerializer());
         om.registerModule(bsonModule);
     }
