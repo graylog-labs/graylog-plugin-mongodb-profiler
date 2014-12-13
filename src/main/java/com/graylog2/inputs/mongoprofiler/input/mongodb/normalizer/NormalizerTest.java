@@ -1,16 +1,11 @@
-/**
- * Copyright 2014 TORCH GmbH <hello@torch.sh>
- *
- * This file is part of Graylog2 Enterprise.
- *
- */
-package com.graylog2.inputs.mongoprofiler;
+package com.graylog2.inputs.mongoprofiler.input.mongodb.normalizer;
 
 import com.mongodb.BasicDBObject;
 import com.mongodb.DBObject;
 import org.testng.annotations.Test;
 
-import static org.testng.AssertJUnit.*;
+import static org.testng.AssertJUnit.assertEquals;
+import static org.testng.AssertJUnit.assertFalse;
 
 /**
  * @author Lennart Koopmann <lennart@torch.sh>
@@ -33,7 +28,6 @@ public class NormalizerTest {
 
         assertEquals("24d3a63ba4a56fbb5c359fd3375cf4f8", n.getFullHash());
         assertEquals("f29c81f1601cbf3fd843283da6a67cd5", n.getFieldsHash());
-
     }
 
     @Test

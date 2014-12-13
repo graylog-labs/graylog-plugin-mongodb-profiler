@@ -1,21 +1,16 @@
-/**
- * Copyright 2014 TORCH GmbH <hello@torch.sh>
- *
- * This file is part of Graylog2 Enterprise.
- *
- */
-package com.graylog2.inputs.mongoprofiler;
+package com.graylog2.inputs.mongoprofiler.input.mongodb;
 
 import com.codahale.metrics.Meter;
 import com.codahale.metrics.MetricRegistry;
+import com.graylog2.inputs.mongoprofiler.input.mongodb.parser.RawParser;
 import com.mongodb.*;
-import org.graylog2.plugin.Message;
-import org.graylog2.plugin.buffers.Buffer;
 import org.graylog2.plugin.inputs.MessageInput;
 import org.joda.time.DateTime;
 import org.joda.time.DateTimeZone;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.io.IOException;
 
 import static com.codahale.metrics.MetricRegistry.name;
 
@@ -30,17 +25,14 @@ public class ProfileSubscriber extends Thread {
     private final DB db;
     private final DBCollection profile;
 
-    private final Parser parser;
-
     private final MessageInput sourceInput;
-    private final Buffer targetBuffer;
 
     private final Meter newCursors;
     private final Meter cursorReads;
 
     private boolean stopRequested = false;
 
-    public ProfileSubscriber(MongoClient mongoClient, String dbName, Buffer targetBuffer, MessageInput sourceInput, MetricRegistry metricRegistry) {
+    public ProfileSubscriber(MongoClient mongoClient, String dbName, MessageInput sourceInput, MetricRegistry metricRegistry) {
         LOG.info("Connecting ProfileSubscriber.");
 
         this.mongoClient = mongoClient;
@@ -48,9 +40,6 @@ public class ProfileSubscriber extends Thread {
         this.db = mongoClient.getDB(dbName);
         this.profile = db.getCollection("system.profile");
 
-        parser = new Parser(metricRegistry, sourceInput);
-
-        this.targetBuffer = targetBuffer;
         this.sourceInput = sourceInput;
 
         String metricName = sourceInput.getUniqueReadableId();
@@ -76,6 +65,8 @@ public class ProfileSubscriber extends Thread {
             }
         }
 
+        RawParser rawParser= new RawParser();
+
         while(!stopRequested) {
             try {
                 LOG.info("Building new cursor.");
@@ -96,11 +87,9 @@ public class ProfileSubscriber extends Thread {
                         }
 
                         try {
-                            Message message = parser.parse(cursor.next());
-
-                            targetBuffer.insertCached(message, sourceInput);
-                        } catch(Parser.UnparsableException e) {
-                            LOG.error("Cannot parse profile info.", e);
+                            sourceInput.processRawMessage(rawParser.parse(cursor.next(), sourceInput));
+                        } catch(IOException e) {
+                            LOG.error("Cannot serialize profile info.", e);
                             continue;
                         } catch(Exception e) {
                             LOG.error("Error when trying to parse profile info.", e);

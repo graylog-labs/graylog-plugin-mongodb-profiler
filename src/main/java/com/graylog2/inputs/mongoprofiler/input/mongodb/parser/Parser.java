@@ -1,17 +1,11 @@
-/**
- * Copyright 2014 TORCH GmbH <hello@torch.sh>
- *
- * This file is part of Graylog2 Enterprise.
- *
- */
-package com.graylog2.inputs.mongoprofiler;
+package com.graylog2.inputs.mongoprofiler.input.mongodb.parser;
 
-import com.codahale.metrics.Timer;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.module.SimpleModule;
 import com.fasterxml.jackson.core.Version;
 import com.google.common.collect.Maps;
+import com.graylog2.inputs.mongoprofiler.input.mongodb.normalizer.Normalizer;
 import com.mongodb.DBObject;
 import com.codahale.metrics.MetricRegistry;
 import org.bson.types.ObjectId;
@@ -23,7 +17,6 @@ import org.slf4j.LoggerFactory;
 
 import java.util.Map;
 
-import static com.codahale.metrics.MetricRegistry.name;
 
 /**
  * @author Lennart Koopmann <lennart@torch.sh>
@@ -32,14 +25,11 @@ public class Parser {
 
     private static final Logger LOG = LoggerFactory.getLogger(Parser.class);
 
-    private final Timer timer;
     private final ObjectMapper om;
 
-    public Parser(MetricRegistry metrics, MessageInput sourceInput) {
-        this.timer = metrics.timer(name(sourceInput.getUniqueReadableId(), "parseTime"));
-
+    public Parser() {
         this.om = new ObjectMapper();
-        SimpleModule bsonModule = new SimpleModule("BSONObjectIdParser", Version.unknownVersion());
+        SimpleModule bsonModule = new SimpleModule("BSONObqueryjectIdParser", Version.unknownVersion());
         bsonModule.addSerializer(ObjectId.class, new ObjectIdSerializer());
         om.registerModule(bsonModule);
     }
@@ -50,8 +40,6 @@ public class Parser {
             throw new UnparsableException();
         }
 
-        Timer.Context ctx = timer.time();
-
         Message msg = new Message(
                 buildShortMessage(doc),
                 "mongoprof",
@@ -60,11 +48,6 @@ public class Parser {
 
         // Add all fields.
         msg.addFields(getFields(doc));
-
-        // Add our product ID.
-        msg.addField("g2eid", MongoDBProfilerInput.G2E_ID);
-
-        ctx.stop();
 
         return msg;
     }

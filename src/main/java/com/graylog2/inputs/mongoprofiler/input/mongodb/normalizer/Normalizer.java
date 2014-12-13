@@ -1,10 +1,4 @@
-/**
- * Copyright 2014 TORCH GmbH <hello@torch.sh>
- *
- * This file is part of Graylog2 Enterprise.
- *
- */
-package com.graylog2.inputs.mongoprofiler;
+package com.graylog2.inputs.mongoprofiler.input.mongodb.normalizer;
 
 import com.google.common.collect.Maps;
 import com.mongodb.DBObject;

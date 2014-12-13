@@ -17,29 +17,28 @@
  * along with Graylog2.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
-package com.graylog2.inputs.mongoprofiler;
+package com.graylog2.inputs.mongoprofiler.plugin;
 
-import com.fasterxml.jackson.core.JsonGenerator;
-import com.fasterxml.jackson.databind.JsonSerializer;
-import com.fasterxml.jackson.databind.SerializerProvider;
-import org.bson.types.ObjectId;
+import com.google.common.collect.Lists;
+import org.graylog2.plugin.Plugin;
+import org.graylog2.plugin.PluginMetaData;
+import org.graylog2.plugin.PluginModule;
 
-import java.io.IOException;
+import java.util.Collection;
 
 /**
  * @author Lennart Koopmann <lennart@torch.sh>
  */
-public class ObjectIdSerializer extends JsonSerializer<ObjectId> {
+public class MongoDBProfilerInputPlugin implements Plugin {
 
     @Override
-    public void serialize(ObjectId value, JsonGenerator jgen, SerializerProvider provider) throws IOException {
-        StringBuilder sb = new StringBuilder();
+    public PluginMetaData metadata() {
+        return new MongoDBProfilerInputMetadata();
+    }
 
-        sb.append("ObjectId(")
-                .append(value.toStringMongod())
-                .append(")");
-
-        jgen.writeString(sb.toString());
+    @Override
+    public Collection<PluginModule> modules() {
+        return Lists.newArrayList((PluginModule) new MongoDBProfilerInputModule());
     }
 
 }
