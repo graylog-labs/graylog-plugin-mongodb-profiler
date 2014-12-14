@@ -161,7 +161,6 @@ public class MongoDBProfilerTransport extends ThrottleableTransport {
             throw new MisfireException("Could not verify MongoDB profiler connection.", e);
         }
 
-        // XXX TODO
         subscriber = new ProfileSubscriber(
                 mongoClient,
                 configuration.getString(CK_MONGO_DB),

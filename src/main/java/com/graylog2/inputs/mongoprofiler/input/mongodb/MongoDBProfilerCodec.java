@@ -21,8 +21,6 @@ import java.io.ObjectInputStream;
  */
 public class MongoDBProfilerCodec implements Codec {
 
-    private static final String NAME = "MongoDB profile information";
-
     private final Parser parser;
 
     public MongoDBProfilerCodec() {
@@ -57,7 +55,7 @@ public class MongoDBProfilerCodec implements Codec {
 
     @Override
     public String getName() {
-        return NAME;
+        return "mongodb-profiler-info";
     }
 
     @Nonnull

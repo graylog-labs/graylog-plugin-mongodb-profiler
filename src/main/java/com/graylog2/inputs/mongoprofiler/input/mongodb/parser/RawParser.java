@@ -1,5 +1,6 @@
 package com.graylog2.inputs.mongoprofiler.input.mongodb.parser;
 
+import com.graylog2.inputs.mongoprofiler.input.mongodb.MongoDBProfilerCodec;
 import com.mongodb.DBObject;
 import org.graylog2.plugin.inputs.MessageInput;
 import org.graylog2.plugin.journal.RawMessage;
@@ -18,7 +19,13 @@ public class RawParser {
         ObjectOutputStream out = new ObjectOutputStream(byteOut);
         out.writeObject(doc);
 
-        return new RawMessage(byteOut.toByteArray());
+        RawMessage message = new RawMessage(
+                byteOut.toByteArray()
+        );
+
+        message.setCodecName("mongodb-profiler-info");
+
+        return message;
     }
 
 }
