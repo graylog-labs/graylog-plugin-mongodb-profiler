@@ -4,6 +4,7 @@ import com.codahale.metrics.Meter;
 import com.codahale.metrics.MetricRegistry;
 import com.graylog2.inputs.mongoprofiler.input.mongodb.parser.RawParser;
 import com.mongodb.*;
+import org.graylog2.plugin.LocalMetricRegistry;
 import org.graylog2.plugin.inputs.MessageInput;
 import org.joda.time.DateTime;
 import org.joda.time.DateTimeZone;
@@ -33,7 +34,7 @@ public class ProfileSubscriber extends Thread {
 
     private boolean stopRequested = false;
 
-    public ProfileSubscriber(MongoClient mongoClient, String dbName, MessageInput sourceInput, MetricRegistry metricRegistry) {
+    public ProfileSubscriber(MongoClient mongoClient, String dbName, MessageInput sourceInput, LocalMetricRegistry metricRegistry) {
         LOG.info("Connecting ProfileSubscriber.");
 
         this.mongoClient = mongoClient;

@@ -1,6 +1,5 @@
 package com.graylog2.inputs.mongoprofiler.input.mongodb;
 
-import com.codahale.metrics.MetricRegistry;
 import com.codahale.metrics.MetricSet;
 import com.google.common.collect.Lists;
 import com.google.common.eventbus.EventBus;
@@ -33,7 +32,7 @@ import java.util.List;
 /**
  * @author Lennart Koopmann <lennart@torch.sh>
  */
-public class MongoDBProfilerTransport extends ThrottleableTransport {
+public class MongoDBProfilerTransport implements Transport {
 
     private static final Logger LOG = LoggerFactory.getLogger(MongoDBProfilerTransport.class);
 
@@ -49,7 +48,7 @@ public class MongoDBProfilerTransport extends ThrottleableTransport {
 
     private ProfileSubscriber subscriber;
 
-    private final MetricRegistry localRegistry;
+    private final LocalMetricRegistry localRegistry;
 
     @AssistedInject
     public MongoDBProfilerTransport(@Assisted final Configuration configuration,

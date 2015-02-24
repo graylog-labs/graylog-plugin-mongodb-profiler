@@ -9,10 +9,7 @@ import com.graylog2.inputs.mongoprofiler.input.mongodb.MongoDBProfilerCodec;
 import com.graylog2.inputs.mongoprofiler.input.mongodb.MongoDBProfilerTransport;
 import com.graylog2.inputs.mongoprofiler.plugin.MongoDBProfilerInputMetadata;
 import com.graylog2.inputs.mongoprofiler.plugin.MongoDBProfilerInputModule;
-import org.graylog2.plugin.Plugin;
-import org.graylog2.plugin.PluginMetaData;
-import org.graylog2.plugin.PluginModule;
-import org.graylog2.plugin.ServerStatus;
+import org.graylog2.plugin.*;
 import org.graylog2.plugin.configuration.Configuration;
 import org.graylog2.plugin.inputs.MessageInput;
 import org.graylog2.plugin.inputs.codecs.Codec;
@@ -31,13 +28,14 @@ public class MongoDBProfilerInput extends MessageInput {
     public MongoDBProfilerInput(@Assisted Configuration configuration,
                     MetricRegistry metricRegistry,
                     MongoDBProfilerTransport.Factory transport,
-                    MetricRegistry localRegistry,
+                    LocalMetricRegistry localRegistry,
                     MongoDBProfilerCodec.Factory codec,
                     Config config,
                     Descriptor descriptor,
                     ServerStatus serverStatus) {
         super(
                 metricRegistry,
+                configuration,
                 transport.create(configuration),
                 localRegistry,
                 codec.create(configuration),
