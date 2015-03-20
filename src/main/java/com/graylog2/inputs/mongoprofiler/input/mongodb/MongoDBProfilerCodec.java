@@ -15,7 +15,6 @@ import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.io.ByteArrayInputStream;
 import java.io.ObjectInputStream;
-import java.util.HashMap;
 
 /**
  * @author Lennart Koopmann <lennart@torch.sh>
@@ -62,7 +61,7 @@ public class MongoDBProfilerCodec implements Codec {
     @Nonnull
     @Override
     public Configuration getConfiguration() {
-        return new Configuration(new HashMap<String, Object>());
+        return Configuration.EMPTY_CONFIGURATION;
     }
 
     @FactoryClass
