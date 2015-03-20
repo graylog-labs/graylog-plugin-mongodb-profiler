@@ -1,5 +1,6 @@
 package com.graylog2.inputs.mongoprofiler.input.mongodb;
 
+import com.beust.jcommander.internal.Maps;
 import com.graylog2.inputs.mongoprofiler.input.mongodb.parser.Parser;
 import com.mongodb.DBObject;
 import org.graylog2.plugin.Message;
@@ -15,6 +16,7 @@ import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.io.ByteArrayInputStream;
 import java.io.ObjectInputStream;
+import java.util.HashMap;
 
 /**
  * @author Lennart Koopmann <lennart@torch.sh>
@@ -61,7 +63,7 @@ public class MongoDBProfilerCodec implements Codec {
     @Nonnull
     @Override
     public Configuration getConfiguration() {
-        return null;
+        return new Configuration(new HashMap<String, Object>());
     }
 
     @FactoryClass
