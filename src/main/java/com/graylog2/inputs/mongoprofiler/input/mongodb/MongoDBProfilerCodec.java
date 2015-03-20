@@ -1,6 +1,5 @@
 package com.graylog2.inputs.mongoprofiler.input.mongodb;
 
-import com.beust.jcommander.internal.Maps;
 import com.graylog2.inputs.mongoprofiler.input.mongodb.parser.Parser;
 import com.mongodb.DBObject;
 import org.graylog2.plugin.Message;
