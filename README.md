@@ -12,14 +12,16 @@ https://medium.com/@lennartkoopmann/fix-all-your-slow-mongodb-queries-in-a-few-m
 
 ![](https://github.com/Graylog2/graylog-plugin-mongodb-profiler/blob/master/2.png)
 
-## Installation
+## Installation & Usage
 
-[Download the plugin](https://github.com/Graylog2/graylog-plugin-mongodb-profiler/releases)
+* [Download the plugin](https://github.com/Graylog2/graylog-plugin-mongodb-profiler/releases)
 and place the `.jar` file in your Graylog plugin directory. The plugin directory
 is the `plugins/` folder relative from your `graylog-server` directory by default
 and can be configured in your `graylog.conf` file.
+* Restart `graylog-server`
+* Start a new MongoDB profiler input from System -> Inputs in your Graylog Web Interface
+* Make sure to [enable the profiler in your MongoDB processes](https://docs.mongodb.org/v3.0/tutorial/manage-the-database-profiler/). Set it to at least level 1 or 2.
 
-Restart `graylog-server` and you are done.
 
 ## Build
 
