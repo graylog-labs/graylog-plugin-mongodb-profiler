@@ -1,6 +1,8 @@
 MongoDB Profiler for Graylog
 ============================
 
+[![Build Status](https://travis-ci.org/Graylog2/graylog-plugin-mongodb-profiler.svg)](https://travis-ci.org/Graylog2/graylog-plugin-mongodb-profiler)
+
 If you are unfamiliar with Graylog or MongoDB you should read this more
 detailed blog post instead:
 
