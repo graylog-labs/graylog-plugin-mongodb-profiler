@@ -4,7 +4,7 @@ MongoDB Profiler for Graylog
 If you are unfamiliar with Graylog or MongoDB you should read this more
 detailed blog post instead:
 
-https://medium.com/@lennartkoopmann/fix-all-your-slow-mongodb-queries-in-a-few-minutes-f497aaed9a82
+https://www.graylog.org/troubleshoot-slow-mongodb-queries-in-minutes-with-graylog/
 
 **Required Graylog version:** 1.0 and later
 
