@@ -13,7 +13,10 @@ import org.graylog2.plugin.LocalMetricRegistry;
 import org.graylog2.plugin.ServerStatus;
 import org.graylog2.plugin.configuration.Configuration;
 import org.graylog2.plugin.configuration.ConfigurationRequest;
-import org.graylog2.plugin.configuration.fields.*;
+import org.graylog2.plugin.configuration.fields.BooleanField;
+import org.graylog2.plugin.configuration.fields.ConfigurationField;
+import org.graylog2.plugin.configuration.fields.NumberField;
+import org.graylog2.plugin.configuration.fields.TextField;
 import org.graylog2.plugin.inputs.MessageInput;
 import org.graylog2.plugin.inputs.MisfireException;
 import org.graylog2.plugin.inputs.annotations.ConfigClass;
@@ -25,7 +28,6 @@ import org.graylog2.plugin.lifecycles.Lifecycle;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -100,57 +102,55 @@ public class MongoDBProfilerTransport implements Transport {
         Configuration configuration = input.getConfiguration();
         String mongoHost = configuration.getString(CK_MONGO_HOST);
 
-        MongoClient mongoClient;
-        try {
-            if (configuration.getBoolean(CK_MONGO_USE_AUTH)) {
-                final MongoCredential credentials = MongoCredential.createMongoCRCredential(
-                        configuration.getString(CK_MONGO_USER),
-                        configuration.getString(CK_MONGO_DB),
-                        configuration.getString(CK_MONGO_PW).toCharArray()
+        final MongoClient mongoClient;
+        if (configuration.getBoolean(CK_MONGO_USE_AUTH)) {
+            final MongoCredential credentials = MongoCredential.createMongoCRCredential(
+                    configuration.getString(CK_MONGO_USER),
+                    configuration.getString(CK_MONGO_DB),
+                    configuration.getString(CK_MONGO_PW).toCharArray()
+            );
+
+            List<MongoCredential> credentialList = new ArrayList<MongoCredential>() {{
+                add(credentials);
+            }};
+
+            if (mongoHost.contains(",")) {
+                // Authenticated replica set.
+                String[] hosts = mongoHost.split(",");
+                List<ServerAddress> replicaHosts = Lists.newArrayList();
+                for (String host : hosts) {
+                    replicaHosts.add(new ServerAddress(host, configuration.getInt(CK_MONGO_PORT)));
+                }
+
+                mongoClient = new MongoClient(replicaHosts, credentialList);
+            } else {
+                // Authenticated single host.
+                ServerAddress serverAddress = new ServerAddress(
+                        mongoHost,
+                        configuration.getInt(CK_MONGO_PORT)
                 );
 
-                List<MongoCredential> credentialList = new ArrayList<MongoCredential>(){{ add(credentials); }};
-
-                if(mongoHost.contains(",")) {
-                    // Authenticated replica set.
-                    String[] hosts = mongoHost.split(",");
-                    List<ServerAddress> replicaHosts = Lists.newArrayList();
-                    for(String host : hosts) {
-                        replicaHosts.add(new ServerAddress(host, configuration.getInt(CK_MONGO_PORT)));
-                    }
-
-                    mongoClient = new MongoClient(replicaHosts, credentialList);
-                } else {
-                    // Authenticated single host.
-                    ServerAddress serverAddress = new ServerAddress(
-                            mongoHost,
-                            configuration.getInt(CK_MONGO_PORT)
-                    );
-
-                    mongoClient = new MongoClient(serverAddress, credentialList);
-                }
-            } else {
-                if(mongoHost.contains(",")) {
-                    // Unauthenticated replica set.
-                    String[] hosts = mongoHost.split(",");
-                    List<ServerAddress> replicaHosts = Lists.newArrayList();
-                    for(String host : hosts) {
-                        replicaHosts.add(new ServerAddress(host, configuration.getInt(CK_MONGO_PORT)));
-                    }
-
-                    mongoClient = new MongoClient(replicaHosts);
-                } else {
-                    // Unauthenticated single host.
-                    ServerAddress serverAddress = new ServerAddress(
-                            mongoHost,
-                            configuration.getInt(CK_MONGO_PORT)
-                    );
-
-                    mongoClient = new MongoClient(serverAddress);
-                }
+                mongoClient = new MongoClient(serverAddress, credentialList);
             }
-        } catch (UnknownHostException e) {
-            throw new MisfireException("Could not connect to MongoDB. Unknown host.", e);
+        } else {
+            if (mongoHost.contains(",")) {
+                // Unauthenticated replica set.
+                String[] hosts = mongoHost.split(",");
+                List<ServerAddress> replicaHosts = Lists.newArrayList();
+                for (String host : hosts) {
+                    replicaHosts.add(new ServerAddress(host, configuration.getInt(CK_MONGO_PORT)));
+                }
+
+                mongoClient = new MongoClient(replicaHosts);
+            } else {
+                // Unauthenticated single host.
+                ServerAddress serverAddress = new ServerAddress(
+                        mongoHost,
+                        configuration.getInt(CK_MONGO_PORT)
+                );
+
+                mongoClient = new MongoClient(serverAddress);
+            }
         }
 
         // Try the connection.

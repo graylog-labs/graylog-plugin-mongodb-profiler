@@ -1,7 +1,6 @@
 package com.graylog2.inputs.mongoprofiler.input.mongodb;
 
 import com.codahale.metrics.Meter;
-import com.codahale.metrics.MetricRegistry;
 import com.graylog2.inputs.mongoprofiler.input.mongodb.parser.RawParser;
 import com.mongodb.*;
 import org.graylog2.plugin.LocalMetricRegistry;
@@ -12,7 +11,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
-import java.util.Date;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import static com.codahale.metrics.MetricRegistry.name;
 
@@ -32,10 +31,12 @@ public class ProfileSubscriber extends Thread {
     private final Meter newCursors;
     private final Meter cursorReads;
 
-    private boolean stopRequested = false;
+    private AtomicBoolean stopRequested;
 
     public ProfileSubscriber(MongoClient mongoClient, String dbName, MessageInput sourceInput, LocalMetricRegistry metricRegistry) {
         LOG.info("Connecting ProfileSubscriber.");
+
+        this.stopRequested = new AtomicBoolean(false);
 
         this.mongoClient = mongoClient;
 
@@ -52,24 +53,26 @@ public class ProfileSubscriber extends Thread {
     @Override
     public void run() {
         // Wait until the collection is ready. (It is capped after profiling is turned on)
-        if(!this.profile.isCapped()) {
+        if (!this.profile.isCapped()) {
             LOG.debug("Profiler collection is not capped. Please enable profiling for database [{}]", this.db.getName());
-            while(true) {
-                if(this.profile.isCapped()) {
+            while (true) {
+                if (this.profile.isCapped()) {
                     LOG.info("Profiler collection is capped. Moving on.");
                     break;
                 } else {
                     LOG.debug("Profiler collection is not capped.");
                     try {
                         Thread.sleep(1000);
-                    } catch (InterruptedException e) { return; }
+                    } catch (InterruptedException e) {
+                        return;
+                    }
                 }
             }
         }
 
-        RawParser rawParser= new RawParser();
+        RawParser rawParser = new RawParser();
 
-        while(!stopRequested) {
+        while (!this.stopRequested.get()) {
             try {
                 LOG.info("Building new cursor.");
                 newCursors.mark();
@@ -80,26 +83,26 @@ public class ProfileSubscriber extends Thread {
                         .addOption(Bytes.QUERYOPTION_AWAITDATA);
 
                 try {
-                    while(mongoClient.getConnector().isOpen() && cursor.hasNext()) {
+                    while (!this.stopRequested.get() && cursor.hasNext()) {
                         cursorReads.mark();
 
-                        if (stopRequested) {
+                        if (this.stopRequested.get()) {
                             LOG.info("Stop requested.");
                             return;
                         }
 
                         try {
                             sourceInput.processRawMessage(rawParser.parse(cursor.next(), sourceInput));
-                        } catch(IOException e) {
+                        } catch (IOException e) {
                             LOG.error("Cannot serialize profile info.", e);
                             continue;
-                        } catch(Exception e) {
+                        } catch (Exception e) {
                             LOG.error("Error when trying to parse profile info.", e);
                             continue;
                         }
                     }
                 } finally {
-                    if (cursor != null && mongoClient.getConnector().isOpen()) {
+                    if (cursor != null && !this.stopRequested.get()) {
                         cursor.close();
                     }
                 }
@@ -109,15 +112,19 @@ public class ProfileSubscriber extends Thread {
 
             // Something broke if we get here. Retry soonish.
             try {
-                if(!stopRequested) { Thread.sleep(2500); }
-            } catch (InterruptedException e) { break; }
+                if (!this.stopRequested.get()) {
+                    Thread.sleep(2500);
+                }
+            } catch (InterruptedException e) {
+                break;
+            }
         }
     }
 
     public void terminate() {
-        stopRequested = true;
+        this.stopRequested.set(true);
 
-        if(mongoClient != null) {
+        if (mongoClient != null) {
             mongoClient.close();
         }
     }
