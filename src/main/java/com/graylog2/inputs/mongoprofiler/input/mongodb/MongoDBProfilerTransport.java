@@ -104,7 +104,7 @@ public class MongoDBProfilerTransport implements Transport {
 
         final MongoClient mongoClient;
         if (configuration.getBoolean(CK_MONGO_USE_AUTH)) {
-            final MongoCredential credentials = MongoCredential.createMongoCRCredential(
+            final MongoCredential credentials = MongoCredential.createCredential(
                     configuration.getString(CK_MONGO_USER),
                     configuration.getString(CK_MONGO_DB),
                     configuration.getString(CK_MONGO_PW).toCharArray()
