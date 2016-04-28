@@ -8,7 +8,9 @@ detailed blog post instead:
 
 https://www.graylog.org/troubleshoot-slow-mongodb-queries-in-minutes-with-graylog/
 
-**Required Graylog version:** 1.0 and later
+**Required Graylog version:** 2.0 and later
+
+Please use version 1.0.1 of this plugin if you are still running Graylog 1.x
 
 ![](https://github.com/Graylog2/graylog-plugin-mongodb-profiler/blob/master/1.png)
 
