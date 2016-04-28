@@ -7,9 +7,6 @@ import org.testng.annotations.Test;
 import static org.testng.AssertJUnit.assertEquals;
 import static org.testng.AssertJUnit.assertFalse;
 
-/**
- * @author Lennart Koopmann <lennart@torch.sh>
- */
 public class NormalizerTest {
 
     @Test
@@ -240,5 +237,4 @@ public class NormalizerTest {
 
         assertFalse(n1.getFullHash().equals(n2.getFullHash()));
     }
-
 }

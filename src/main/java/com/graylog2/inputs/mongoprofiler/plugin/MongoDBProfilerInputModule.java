@@ -5,16 +5,11 @@ import com.graylog2.inputs.mongoprofiler.input.mongodb.MongoDBProfilerCodec;
 import com.graylog2.inputs.mongoprofiler.input.mongodb.MongoDBProfilerTransport;
 import org.graylog2.plugin.PluginModule;
 
-/**
- * @author Lennart Koopmann <lennart@torch.sh>
- */
 public class MongoDBProfilerInputModule extends PluginModule {
-
     @Override
     protected void configure() {
-        installCodec(codecMapBinder(), "mongodb-profiler-info", MongoDBProfilerCodec.class);
-        installTransport(transportMapBinder(), "mongodb-livetail-collection", MongoDBProfilerTransport.class);
-        installInput(inputsMapBinder(), MongoDBProfilerInput.class, MongoDBProfilerInput.Factory.class);
+        addCodec("mongodb-profiler-info", MongoDBProfilerCodec.class);
+        addTransport("mongodb-livetail-collection", MongoDBProfilerTransport.class);
+        addMessageInput(MongoDBProfilerInput.class);
     }
-
 }

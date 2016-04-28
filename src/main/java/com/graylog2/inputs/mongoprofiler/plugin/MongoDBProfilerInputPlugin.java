@@ -15,22 +15,17 @@
  *
  * You should have received a copy of the GNU General Public License
  * along with Graylog2.  If not, see <http://www.gnu.org/licenses/>.
- *
  */
 package com.graylog2.inputs.mongoprofiler.plugin;
 
-import com.google.common.collect.Lists;
 import org.graylog2.plugin.Plugin;
 import org.graylog2.plugin.PluginMetaData;
 import org.graylog2.plugin.PluginModule;
 
 import java.util.Collection;
+import java.util.Collections;
 
-/**
- * @author Lennart Koopmann <lennart@torch.sh>
- */
 public class MongoDBProfilerInputPlugin implements Plugin {
-
     @Override
     public PluginMetaData metadata() {
         return new MongoDBProfilerInputMetadata();
@@ -38,7 +33,6 @@ public class MongoDBProfilerInputPlugin implements Plugin {
 
     @Override
     public Collection<PluginModule> modules() {
-        return Lists.newArrayList((PluginModule) new MongoDBProfilerInputModule());
+        return Collections.singleton(new MongoDBProfilerInputModule());
     }
-
 }

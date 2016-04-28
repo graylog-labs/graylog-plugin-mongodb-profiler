@@ -1,18 +1,14 @@
 package com.graylog2.inputs.mongoprofiler.input.mongodb.normalizer;
 
-import com.google.common.collect.Maps;
+import com.google.common.hash.HashFunction;
+import com.google.common.hash.Hashing;
 import com.mongodb.DBObject;
 
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
+import java.nio.charset.StandardCharsets;
 import java.util.Map;
 import java.util.TreeMap;
 
-/**
- * @author Lennart Koopmann <lennart@torch.sh>
- */
 public class Normalizer {
-
     private final TreeMap<String, Object> sortedMap;
     private final String db;
     private final String collection;
@@ -47,41 +43,19 @@ public class Normalizer {
     }
 
     private String hash(String x) {
-        MessageDigest md;
-
-        try {
-            md = MessageDigest.getInstance("MD5");
-        } catch (NoSuchAlgorithmException e) {
-            throw new RuntimeException(e);
-        }
-
+        final HashFunction md5 = Hashing.md5();
         /*
          * We are adding the database and collection to the string because
          * we might end up with the same fields hash when querying just for
          * "_id" but in different collections.
          */
-        x += collection+db;
-
-        byte[] digestresult = md.digest(x.getBytes());
-        StringBuffer hex = new StringBuffer();
-
-        for (int i = 0; i < digestresult.length; i++) {
-            if ((0xff & digestresult[i]) < 0x10) {
-                hex.append("0").append(Integer.toHexString((0xFF & digestresult[i])));
-            } else {
-                hex.append(Integer.toHexString(0xFF & digestresult[i]));
-            }
-        }
-
-        return hex.toString();
+        return md5.hashString(x + collection + db, StandardCharsets.UTF_8).toString();
     }
 
-    private TreeMap sort(DBObject obj) {
-        TreeMap sorted = Maps.newTreeMap();
-
-        for(String key : obj.keySet()) {
-            Object o = obj.get(key);
-
+    private TreeMap<String, Object> sort(DBObject obj) {
+        final TreeMap<String, Object> sorted = new TreeMap<>();
+        for (String key : obj.keySet()) {
+            final Object o = obj.get(key);
             if (o instanceof DBObject) {
                 sorted.put(key, sort((DBObject) o));
             } else {
@@ -92,26 +66,30 @@ public class Normalizer {
         return sorted;
     }
 
-    public void appendFullStringMap(StringBuilder sb, TreeMap<String, Object> map) {
+    @SuppressWarnings("unchecked")
+    private void appendFullStringMap(StringBuilder sb, TreeMap<String, Object> map) {
         for (Map.Entry<String, Object> x : map.entrySet()) {
-            if (x.getValue() instanceof TreeMap) {
+            final Object value = x.getValue();
+            if (value instanceof TreeMap) {
                 sb.append("{");
-                appendFullStringMap(sb, (TreeMap) x.getValue());
+                appendFullStringMap(sb, (TreeMap<String, Object>) value);
                 sb.append("},");
             } else {
-                sb.append(x.getKey()).append(":").append(x.getValue()).append(",");
+                sb.append(x.getKey()).append(":").append(value).append(",");
             }
         }
 
         // Remove last comma.
-        sb.deleteCharAt(sb.toString().length()-1);
+        sb.deleteCharAt(sb.toString().length() - 1);
     }
 
-    public void appendFieldsStringMap(StringBuilder sb, TreeMap<String, Object> map) {
+    @SuppressWarnings("unchecked")
+    private void appendFieldsStringMap(StringBuilder sb, TreeMap<String, Object> map) {
         for (Map.Entry<String, Object> x : map.entrySet()) {
-            if (x.getValue() instanceof TreeMap) {
+            final Object value = x.getValue();
+            if (value instanceof TreeMap) {
                 sb.append("{");
-                appendFieldsStringMap(sb, (TreeMap) x.getValue());
+                appendFieldsStringMap(sb, (TreeMap<String, Object>) value);
                 sb.append("},");
             } else {
                 sb.append(x.getKey()).append(",");
@@ -119,7 +97,6 @@ public class Normalizer {
         }
 
         // Remove last comma.
-        sb.deleteCharAt(sb.toString().length()-1);
+        sb.deleteCharAt(sb.toString().length() - 1);
     }
-
 }

@@ -1,5 +1,6 @@
 package com.graylog2.inputs.mongoprofiler.input.mongodb;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.graylog2.inputs.mongoprofiler.input.mongodb.parser.Parser;
 import com.mongodb.DBObject;
 import org.graylog2.plugin.Message;
@@ -16,28 +17,30 @@ import javax.annotation.Nullable;
 import java.io.ByteArrayInputStream;
 import java.io.ObjectInputStream;
 
-/**
- * @author Lennart Koopmann <lennart@torch.sh>
- */
-public class MongoDBProfilerCodec implements Codec {
+import static java.util.Objects.requireNonNull;
 
+public class MongoDBProfilerCodec implements Codec {
     private final Parser parser;
 
     public MongoDBProfilerCodec() {
-        parser = new Parser();
+        this(new Parser());
+    }
+
+    @VisibleForTesting
+    protected MongoDBProfilerCodec(final Parser parser) {
+        this.parser = requireNonNull(parser);
     }
 
     @Nullable
     @Override
-    public Message decode(RawMessage rawMessage) {
-        DBObject doc;
-
-        try {
-            ByteArrayInputStream b = new ByteArrayInputStream(rawMessage.getPayload());
-            ObjectInputStream o = new ObjectInputStream(b);
+    public Message decode(@Nonnull RawMessage rawMessage) {
+        final DBObject doc;
+        try (
+                final ByteArrayInputStream b = new ByteArrayInputStream(rawMessage.getPayload());
+                final ObjectInputStream o = new ObjectInputStream(b)) {
             doc = (DBObject) o.readObject();
         } catch (Exception e) {
-            throw new RuntimeException("Could not de-serialize MongoDB profiler information from raw message. Skipping.", e);
+            throw new IllegalArgumentException("Could not de-serialize MongoDB profiler information from raw message. Skipping.", e);
         }
 
         try {
@@ -81,7 +84,8 @@ public class MongoDBProfilerCodec implements Codec {
         }
 
         @Override
-        public void overrideDefaultValues(@Nonnull ConfigurationRequest cr) {}
+        public void overrideDefaultValues(@Nonnull ConfigurationRequest cr) {
+        }
     }
 
 }

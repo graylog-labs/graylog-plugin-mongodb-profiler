@@ -1,10 +1,9 @@
 package com.graylog2.inputs.mongoprofiler.input.mongodb;
 
 import com.codahale.metrics.MetricSet;
-import com.google.common.collect.Lists;
+import com.google.common.collect.ImmutableList;
 import com.google.common.eventbus.EventBus;
 import com.google.common.eventbus.Subscribe;
-import com.google.inject.assistedinject.Assisted;
 import com.google.inject.assistedinject.AssistedInject;
 import com.mongodb.MongoClient;
 import com.mongodb.MongoCredential;
@@ -31,9 +30,6 @@ import org.slf4j.LoggerFactory;
 import java.util.ArrayList;
 import java.util.List;
 
-/**
- * @author Lennart Koopmann <lennart@torch.sh>
- */
 public class MongoDBProfilerTransport implements Transport {
 
     private static final Logger LOG = LoggerFactory.getLogger(MongoDBProfilerTransport.class);
@@ -53,10 +49,9 @@ public class MongoDBProfilerTransport implements Transport {
     private final LocalMetricRegistry localRegistry;
 
     @AssistedInject
-    public MongoDBProfilerTransport(@Assisted final Configuration configuration,
-                               final EventBus serverEventBus,
-                               final LocalMetricRegistry localRegistry,
-                               final ServerStatus serverStatus) {
+    public MongoDBProfilerTransport(final EventBus serverEventBus,
+                                    final LocalMetricRegistry localRegistry,
+                                    final ServerStatus serverStatus) {
         this.localRegistry = localRegistry;
         this.serverEventBus = serverEventBus;
         this.serverStatus = serverStatus;
@@ -88,91 +83,50 @@ public class MongoDBProfilerTransport implements Transport {
 
     @Override
     public void launch(MessageInput input) throws MisfireException {
-        serverStatus.awaitRunning(new Runnable() {
-            @Override
-            public void run() {
-                lifecycleStateChange(Lifecycle.RUNNING);
-            }
-        });
-
+        serverStatus.awaitRunning(() -> lifecycleStateChange(Lifecycle.RUNNING));
         serverEventBus.register(this);
 
         LOG.debug("Launching MongoDB profiler reader.");
+        final Configuration configuration = input.getConfiguration();
 
-        Configuration configuration = input.getConfiguration();
-        String mongoHost = configuration.getString(CK_MONGO_HOST);
-
+        final int port = configuration.getInt(CK_MONGO_PORT);
         final MongoClient mongoClient;
+        final List<MongoCredential> credentialList;
+        final String db = configuration.getString(CK_MONGO_DB);
         if (configuration.getBoolean(CK_MONGO_USE_AUTH)) {
             final MongoCredential credentials = MongoCredential.createCredential(
                     configuration.getString(CK_MONGO_USER),
-                    configuration.getString(CK_MONGO_DB),
+                    db,
                     configuration.getString(CK_MONGO_PW).toCharArray()
             );
 
-            List<MongoCredential> credentialList = new ArrayList<MongoCredential>() {{
-                add(credentials);
-            }};
-
-            if (mongoHost.contains(",")) {
-                // Authenticated replica set.
-                String[] hosts = mongoHost.split(",");
-                List<ServerAddress> replicaHosts = Lists.newArrayList();
-                for (String host : hosts) {
-                    replicaHosts.add(new ServerAddress(host, configuration.getInt(CK_MONGO_PORT)));
-                }
-
-                mongoClient = new MongoClient(replicaHosts, credentialList);
-            } else {
-                // Authenticated single host.
-                ServerAddress serverAddress = new ServerAddress(
-                        mongoHost,
-                        configuration.getInt(CK_MONGO_PORT)
-                );
-
-                mongoClient = new MongoClient(serverAddress, credentialList);
-            }
+            credentialList = ImmutableList.of(credentials);
         } else {
-            if (mongoHost.contains(",")) {
-                // Unauthenticated replica set.
-                String[] hosts = mongoHost.split(",");
-                List<ServerAddress> replicaHosts = Lists.newArrayList();
-                for (String host : hosts) {
-                    replicaHosts.add(new ServerAddress(host, configuration.getInt(CK_MONGO_PORT)));
-                }
-
-                mongoClient = new MongoClient(replicaHosts);
-            } else {
-                // Unauthenticated single host.
-                ServerAddress serverAddress = new ServerAddress(
-                        mongoHost,
-                        configuration.getInt(CK_MONGO_PORT)
-                );
-
-                mongoClient = new MongoClient(serverAddress);
-            }
+            credentialList = ImmutableList.of();
         }
+
+        final String mongoHost = configuration.getString(CK_MONGO_HOST);
+        final String[] hosts = mongoHost.split(",");
+        final List<ServerAddress> replicaHosts = new ArrayList<>(hosts.length);
+        for (String host : hosts) {
+            replicaHosts.add(new ServerAddress(host, port));
+        }
+        mongoClient = new MongoClient(replicaHosts, credentialList);
 
         // Try the connection.
         try {
-            mongoClient.getDB(configuration.getString(CK_MONGO_DB)).getStats();
+            mongoClient.getDB(db).getStats();
         } catch (Exception e) {
             throw new MisfireException("Could not verify MongoDB profiler connection.", e);
         }
 
-        subscriber = new ProfileSubscriber(
-                mongoClient,
-                configuration.getString(CK_MONGO_DB),
-                input,
-                localRegistry
-        );
-
+        subscriber = new ProfileSubscriber(mongoClient, db, input, localRegistry);
         subscriber.start();
     }
 
     @Override
     public void stop() {
-        if(subscriber != null) {
+        if (subscriber != null) {
             subscriber.terminate();
         }
 
@@ -260,5 +214,4 @@ public class MongoDBProfilerTransport implements Transport {
     public MetricSet getMetricSet() {
         return localRegistry;
     }
-
 }

@@ -3,35 +3,28 @@ package com.graylog2.inputs.mongoprofiler.input.mongodb.parser;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.module.SimpleModule;
-import com.fasterxml.jackson.core.Version;
-import com.google.common.collect.Maps;
 import com.graylog2.inputs.mongoprofiler.input.mongodb.normalizer.Normalizer;
 import com.mongodb.DBObject;
-import com.codahale.metrics.MetricRegistry;
 import org.bson.types.ObjectId;
 import org.graylog2.plugin.Message;
-import org.graylog2.plugin.inputs.MessageInput;
 import org.joda.time.DateTime;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import javax.annotation.Nullable;
+import java.util.HashMap;
 import java.util.Map;
 
-
-/**
- * @author Lennart Koopmann <lennart@torch.sh>
- */
 public class Parser {
-
     private static final Logger LOG = LoggerFactory.getLogger(Parser.class);
 
     private final ObjectMapper om;
 
     public Parser() {
-        this.om = new ObjectMapper();
-        SimpleModule bsonModule = new SimpleModule("BSONObjectIdParser", Version.unknownVersion());
-        bsonModule.addSerializer(ObjectId.class, new ObjectIdSerializer());
-        om.registerModule(bsonModule);
+        this.om = new ObjectMapper()
+                .registerModule(
+                        new SimpleModule("BSONObjectIdParser").addSerializer(ObjectId.class, new ObjectIdSerializer())
+                );
     }
 
     public Message parse(DBObject doc) throws UnparsableException {
@@ -40,11 +33,7 @@ public class Parser {
             throw new UnparsableException();
         }
 
-        Message msg = new Message(
-                buildShortMessage(doc),
-                "mongoprof",
-                new DateTime(doc.get("ts"))
-        );
+        final Message msg = new Message(buildShortMessage(doc), "mongoprof", new DateTime(doc.get("ts")));
 
         // Add all fields.
         msg.addFields(getFields(doc));
@@ -53,11 +42,7 @@ public class Parser {
     }
 
     private String buildShortMessage(DBObject doc) {
-        return new StringBuilder()
-                .append(doc.get("op")).append(" ")
-                .append(doc.get("ns"))
-                .append(" [").append(doc.get("millis")).append("ms]")
-                .toString();
+        return String.valueOf(doc.get("op")) + " " + String.valueOf(doc.get("ns")) + " [" + String.valueOf(doc.get("millis")) + "ms]";
     }
 
     private Map<String, Object> getFields(DBObject doc) {
@@ -72,10 +57,10 @@ public class Parser {
             String ns = (String) doc.get("ns");
             int x = ns.indexOf(".");
             database = ns.substring(0, x);
-            collection = ns.substring(x+1);
+            collection = ns.substring(x + 1);
         }
 
-        Map<String, Object> fields = Maps.newHashMap();
+        final Map<String, Object> fields = new HashMap<>();
 
         // Standard fields of every op type.
         fields.put("operation", doc.get("op"));
@@ -86,37 +71,37 @@ public class Parser {
         fields.put("user", doc.get("user"));
 
         // Query.
-        if(doc.containsField("query")) {
+        if (doc.containsField("query")) {
             try {
-                Normalizer qN = new Normalizer((DBObject) doc.get("query"), database, collection);
+                final Normalizer normalizer = new Normalizer((DBObject) doc.get("query"), database, collection);
                 fields.put("query", om.writeValueAsString(doc.get("query")));
-                fields.put("query_full_hash", qN.getFullHash());
-                fields.put("query_fields_hash", qN.getFieldsHash());
-            } catch(JsonProcessingException e) {
+                fields.put("query_full_hash", normalizer.getFullHash());
+                fields.put("query_fields_hash", normalizer.getFieldsHash());
+            } catch (JsonProcessingException e) {
                 LOG.error("Could not parse MongoDB query to JSON. Not including in fields. Query: " + doc.get("query"), e);
             }
         }
 
         // Command
-        if(doc.containsField("command")) {
+        if (doc.containsField("command")) {
             try {
-                Normalizer cN = new Normalizer((DBObject) doc.get("command"), database, collection);
+                final Normalizer normalizer = new Normalizer((DBObject) doc.get("command"), database, collection);
                 fields.put("command", om.writeValueAsString(doc.get("command")));
-                fields.put("query_full_hash", cN.getFullHash());
-                fields.put("query_fields_hash", cN.getFieldsHash());
-            } catch(JsonProcessingException e) {
+                fields.put("query_full_hash", normalizer.getFullHash());
+                fields.put("query_fields_hash", normalizer.getFieldsHash());
+            } catch (JsonProcessingException e) {
                 LOG.error("Could not parse MongoDB command to JSON. Not including in fields. Command: " + doc.get("command"), e);
             }
         }
 
         // Update object.
-        if(doc.containsField("updateobj")) {
+        if (doc.containsField("updateobj")) {
             try {
-                Normalizer uoN = new Normalizer((DBObject) doc.get("updateobj"), database, collection);
+                final Normalizer normalizer = new Normalizer((DBObject) doc.get("updateobj"), database, collection);
                 fields.put("update_object", om.writeValueAsString(doc.get("updateobj")));
-                fields.put("update_object_full_hash", uoN.getFullHash());
-                fields.put("update_object_fields_hash", uoN.getFieldsHash());
-            } catch(JsonProcessingException e) {
+                fields.put("update_object_full_hash", normalizer.getFullHash());
+                fields.put("update_object_fields_hash", normalizer.getFieldsHash());
+            } catch (JsonProcessingException e) {
                 LOG.error("Could not parse MongoDB update object to JSON. Not including in fields. Update object: " + doc.get("updateobj"), e);
             }
         }
@@ -144,40 +129,40 @@ public class Parser {
         return fields;
     }
 
+    @Nullable
     private Integer getIntFieldNotZero(DBObject doc, String key) {
         if (!doc.containsField(key)) {
             return null;
         }
 
-        Integer val = (Integer) doc.get(key);
-
-        if(val > 0) {
+        final Integer val = (Integer) doc.get(key);
+        if (val > 0) {
             return val;
         } else {
             return null;
         }
     }
 
+    @Nullable
     private Long getLongFieldNotZero(DBObject doc, String key) {
         if (!doc.containsField(key)) {
             return null;
         }
 
-        Long val = (Long) doc.get(key);
-
-        if(val > 0) {
+        final Long val = (Long) doc.get(key);
+        if (val > 0) {
             return val;
         } else {
             return null;
         }
     }
 
-    public Map<String, Object> lockStats(DBObject doc) {
-        Map<String, Object> result = Maps.newHashMap();
+    private Map<String, Object> lockStats(DBObject doc) {
+        final Map<String, Object> result = new HashMap<>();
 
-        DBObject stats = (DBObject) doc.get("lockStats");
-        DBObject timeLocked = (DBObject) stats.get("timeLockedMicros");
-        DBObject timeAcquiring = (DBObject) stats.get("timeAcquiringMicros");
+        final DBObject stats = (DBObject) doc.get("lockStats");
+        final DBObject timeLocked = (DBObject) stats.get("timeLockedMicros");
+        final DBObject timeAcquiring = (DBObject) stats.get("timeAcquiringMicros");
 
         // The time in microseconds the operation held a specific lock.
         result.put("locked_db_read_micros", getLongFieldNotZero(timeLocked, "r"));
@@ -194,6 +179,6 @@ public class Parser {
         return result;
     }
 
-    public class UnparsableException extends Throwable {
+    public static class UnparsableException extends Exception {
     }
 }

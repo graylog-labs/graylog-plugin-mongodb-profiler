@@ -7,20 +7,9 @@ import org.bson.types.ObjectId;
 
 import java.io.IOException;
 
-/**
- * @author Lennart Koopmann <lennart@torch.sh>
- */
 public class ObjectIdSerializer extends JsonSerializer<ObjectId> {
-
     @Override
     public void serialize(ObjectId value, JsonGenerator jgen, SerializerProvider provider) throws IOException {
-        StringBuilder sb = new StringBuilder();
-
-        sb.append("ObjectId(")
-                .append(value.toStringMongod())
-                .append(")");
-
-        jgen.writeString(sb.toString());
+        jgen.writeString("ObjectId(" + value.toHexString() + ")");
     }
-
 }
