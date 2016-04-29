@@ -30,6 +30,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import static com.codahale.metrics.MetricRegistry.name;
+import static com.google.common.base.Preconditions.checkArgument;
 
 public class ProfileSubscriber extends Thread {
     private static final Logger LOG = LoggerFactory.getLogger(ProfileSubscriber.class);
@@ -53,6 +54,8 @@ public class ProfileSubscriber extends Thread {
         this.mongoClient = mongoClient;
 
         this.db = mongoClient.getDB(dbName);
+
+        checkArgument(db.collectionExists("system.profile"), "The \"system.profile\" collection doesn't exist in database \"%s\". Please enable profiling for database \"%s\"", dbName, dbName);
         this.profile = db.getCollection("system.profile");
 
         this.sourceInput = sourceInput;
