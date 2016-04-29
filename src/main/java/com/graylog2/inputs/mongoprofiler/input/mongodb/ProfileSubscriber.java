@@ -66,7 +66,7 @@ public class ProfileSubscriber extends Thread {
     public void run() {
         // Wait until the collection is ready. (It is capped after profiling is turned on)
         if (!this.profile.isCapped()) {
-            LOG.debug("Profiler collection is not capped. Please enable profiling for database [{}]", this.db.getName());
+            LOG.warn("Profiler collection is not capped. Please enable profiling for database [{}]", this.db.getName());
 
             final Retryer<Boolean> retryer = RetryerBuilder.<Boolean>newBuilder()
                     .retryIfResult(result -> !result)
