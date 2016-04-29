@@ -31,7 +31,7 @@ public class MongoDBProfilerInputMetadata implements PluginMetaData {
 
     @Override
     public Version getVersion() {
-        return new Version(2, 0, 0);
+        return new Version(2, 0, 1);
     }
 
     @Override
