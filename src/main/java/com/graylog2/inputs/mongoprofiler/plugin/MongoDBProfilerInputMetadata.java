@@ -21,7 +21,7 @@ public class MongoDBProfilerInputMetadata implements PluginMetaData {
 
     @Override
     public String getAuthor() {
-        return "Lennart Koopmann";
+        return "Graylog, Inc.";
     }
 
     @Override
@@ -31,7 +31,7 @@ public class MongoDBProfilerInputMetadata implements PluginMetaData {
 
     @Override
     public Version getVersion() {
-        return new Version(1, 1, 0, "SNAPSHOT");
+        return new Version(2, 0, 0);
     }
 
     @Override
