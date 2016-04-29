@@ -4,7 +4,7 @@ import com.codahale.metrics.MetricSet;
 import com.google.common.collect.ImmutableList;
 import com.google.common.eventbus.EventBus;
 import com.google.common.eventbus.Subscribe;
-import com.google.inject.assistedinject.AssistedInject;
+import com.google.inject.assistedinject.Assisted;
 import com.mongodb.MongoClient;
 import com.mongodb.MongoCredential;
 import com.mongodb.ServerAddress;
@@ -27,6 +27,7 @@ import org.graylog2.plugin.lifecycles.Lifecycle;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import javax.inject.Inject;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -48,8 +49,9 @@ public class MongoDBProfilerTransport implements Transport {
 
     private final LocalMetricRegistry localRegistry;
 
-    @AssistedInject
-    public MongoDBProfilerTransport(final EventBus serverEventBus,
+    @Inject
+    public MongoDBProfilerTransport(@Assisted final Configuration configuration,
+                                    final EventBus serverEventBus,
                                     final LocalMetricRegistry localRegistry,
                                     final ServerStatus serverStatus) {
         this.localRegistry = localRegistry;
