@@ -8,7 +8,7 @@ detailed blog post instead:
 
 https://www.graylog.org/troubleshoot-slow-mongodb-queries-in-minutes-with-graylog/
 
-**Required Graylog version:** 2.0 and later
+**Required Graylog version:** 2.0.0 and later
 
 Please use version 1.0.1 of this plugin if you are still running Graylog 1.x
 
@@ -29,7 +29,7 @@ and can be configured in your `graylog.conf` file.
 
 ## Build
 
-This project is using Maven and requires Java 7 or higher.
+This project is using Maven 3 and requires Java 8 or higher.
 
 You can build a plugin (JAR) with `mvn package`.
 
@@ -45,4 +45,4 @@ $ mvn release:prepare
 $ mvn release:perform
 ```
 
-This sets the version numbers, creates a tag and pushes to GitHub. TravisCI will build the release artifacts and upload to GitHub automatically.
+This sets the version numbers, creates a tag and pushes to GitHub. Travis CI will build the release artifacts and upload to GitHub automatically.
