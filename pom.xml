@@ -28,7 +28,7 @@
         <maven.deploy.skip>true</maven.deploy.skip>
         <maven.site.skip>true</maven.site.skip>
         <graylog2.plugin-dir>/usr/share/graylog-server/plugin</graylog2.plugin-dir>
-        <graylog2.version>2.0.0</graylog2.version>
+        <graylog2.version>5.0.9</graylog2.version>
         <jackson.version>2.6.2</jackson.version>
     </properties>
 
